@@ -34,11 +34,6 @@
       "use": "@vercel/static"
     }
   ],
-  "functions": {
-    "api/index.js": {
-      "includeFiles": "{assets/**,index.html,styles.css,styles-v3.css,app.js,app-main.js,app-v3.js,data-store.json,lib/**,supabase-client.js}"
-    }
-  },
   "routes": [
     {
       "src": "/api/(.*)",
