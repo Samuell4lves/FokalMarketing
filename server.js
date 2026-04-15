@@ -61,7 +61,7 @@ const mimeTypes = {
   ".svg": "image/svg+xml",
 };
 
-const server = http.createServer((request, response) => {
+function handleRequest(request, response) {
   const urlPath = decodeURIComponent(request.url.split("?")[0]);
   const clientMatch = urlPath.match(/^\/api\/clientes\/(\d+)$/);
   const dealMatch = urlPath.match(/^\/api\/deals\/(\d+)$/);
@@ -250,7 +250,9 @@ const server = http.createServer((request, response) => {
 
     serveFile(path.join(root, "index.html"), response);
   });
-});
+}
+
+const server = http.createServer(handleRequest);
 
 function serveFile(filePath, response) {
   const extension = path.extname(filePath).toLowerCase();
@@ -1516,6 +1518,12 @@ function normalizeFinanceItem(payload) {
   };
 }
 
-server.listen(port, () => {
+if (require.main === module) {
+  server.listen(port, () => {
   console.log(`Fokal protótipo disponível em http://localhost:${port}`);
-});
+  });
+}
+
+module.exports = {
+  handleRequest,
+};
