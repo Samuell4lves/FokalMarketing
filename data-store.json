@@ -1,0 +1,219 @@
+{
+  "contacts": [],
+  "deals": [
+    {
+      "id": 101,
+      "title": "Implementacao CRM",
+      "value": "R$ 25.000,00",
+      "company": "Empresa Alpha",
+      "contact": "Marina Lopes",
+      "owner": "Joao Silva",
+      "date": "15/04",
+      "stage": "Qualificacao",
+      "status": "Novo lead",
+      "description": "Primeira conversa para implantar CRM comercial.",
+      "nextAction": "Agendar diagnostico"
+    },
+    {
+      "id": 102,
+      "title": "Sistema de Vendas",
+      "value": "R$ 18.000,00",
+      "company": "Beta Corp",
+      "contact": "Rafael Gomes",
+      "owner": "Maria Costa",
+      "date": "16/04",
+      "stage": "Prospeccao",
+      "status": "Mapeamento inicial",
+      "description": "Cliente quer centralizar processo de vendas.",
+      "nextAction": "Enviar materiais de apresentacao"
+    },
+    {
+      "id": 103,
+      "title": "Dashboard Analytics",
+      "value": "R$ 12.000,00",
+      "company": "Gamma Ltd",
+      "contact": "Bianca Melo",
+      "owner": "Pedro Santos",
+      "date": "17/04",
+      "stage": "Prospeccao",
+      "status": "Aguardando retorno",
+      "description": "Interesse em dashboards de performance e CAC.",
+      "nextAction": "Retomar contato em 48h"
+    },
+    {
+      "id": 104,
+      "title": "Consultoria em Cloud",
+      "value": "R$ 45.000,00",
+      "company": "Tech Solutions",
+      "contact": "Maria Santos",
+      "owner": "Joao Silva",
+      "date": "14/04",
+      "stage": "Qualificacao",
+      "status": "Fit validado",
+      "description": "Escopo aprovado para ambiente cloud e governanca.",
+      "nextAction": "Fechar diagnostico tecnico"
+    },
+    {
+      "id": 105,
+      "title": "Migracao de Dados",
+      "value": "R$ 32.000,00",
+      "company": "Delta Inc",
+      "contact": "Luis Prado",
+      "owner": "Maria Costa",
+      "date": "15/04",
+      "stage": "Qualificacao",
+      "status": "Stakeholders mapeados",
+      "description": "Necessidade de migrar base legado para novo stack.",
+      "nextAction": "Confirmar cronograma de descoberta"
+    },
+    {
+      "id": 106,
+      "title": "Licencas de Software",
+      "value": "R$ 52.000,00",
+      "company": "Startup Inovadora",
+      "contact": "Pedro Costa",
+      "owner": "Ana Ferreira",
+      "date": "12/04",
+      "stage": "Proposta",
+      "status": "Proposta enviada",
+      "description": "Pacote anual com suporte premium e onboarding.",
+      "nextAction": "Negociar prazo de pagamento"
+    },
+    {
+      "id": 107,
+      "title": "Treinamento Equipe",
+      "value": "R$ 8.000,00",
+      "company": "Epsilon SA",
+      "contact": "Camila Rocha",
+      "owner": "Pedro Santos",
+      "date": "13/04",
+      "stage": "Proposta",
+      "status": "Em aprovacao",
+      "description": "Treinamento comercial focado em conversao e funil.",
+      "nextAction": "Aguardar aprovacao do RH"
+    },
+    {
+      "id": 108,
+      "title": "Automacao Marketing",
+      "value": "R$ 28.000,00",
+      "company": "Zeta Group",
+      "contact": "Fernando Luz",
+      "owner": "Maria Costa",
+      "date": "14/04",
+      "stage": "Proposta",
+      "status": "Ajustes comerciais",
+      "description": "Fluxos de automacao, CRM e lead scoring.",
+      "nextAction": "Reenviar proposta revisada"
+    },
+    {
+      "id": 109,
+      "title": "ERP Personalizado",
+      "value": "R$ 78.000,00",
+      "company": "Corporation Inc",
+      "contact": "Ana Oliveira",
+      "owner": "Joao Silva",
+      "date": "10/04",
+      "stage": "Negociacao",
+      "status": "Negociacao ativa",
+      "description": "Projeto em fase final de validacao juridica.",
+      "nextAction": "Aprovar clausulas finais"
+    },
+    {
+      "id": 110,
+      "title": "App Mobile",
+      "value": "R$ 42.000,00",
+      "company": "Theta Co",
+      "contact": "Ricardo Viana",
+      "owner": "Ana Ferreira",
+      "date": "11/04",
+      "stage": "Negociacao",
+      "status": "Desconto solicitado",
+      "description": "Aplicativo com painel administrativo e notificacoes.",
+      "nextAction": "Definir contraproposta"
+    },
+    {
+      "id": 1776099506656,
+      "title": "ASDA",
+      "value": "18000",
+      "company": "asds",
+      "contact": "dsasd",
+      "owner": "",
+      "date": "1804",
+      "stage": "Prospeccao",
+      "status": "asdasd",
+      "description": "asd",
+      "nextAction": "asda"
+    }
+  ],
+  "financeItems": [
+    {
+      "id": 201,
+      "type": "receita-fixa",
+      "name": "Contrato Retainer Alpha",
+      "description": "Consultoria mensal recorrente",
+      "value": "R$ 12.000,00"
+    },
+    {
+      "id": 202,
+      "type": "receita-fixa",
+      "name": "Gestao de Midia Beta",
+      "description": "Fee mensal de performance",
+      "value": "R$ 8.500,00"
+    },
+    {
+      "id": 203,
+      "type": "receita-variavel",
+      "name": "Projeto Landing Page",
+      "description": "Recebimento avulso do mes",
+      "value": "R$ 4.200,00"
+    },
+    {
+      "id": 204,
+      "type": "receita-variavel",
+      "name": "Bonus de Campanha",
+      "description": "Pagamento adicional por meta batida",
+      "value": "R$ 2.800,00"
+    },
+    {
+      "id": 205,
+      "type": "despesa-fixa",
+      "name": "Ferramentas SaaS",
+      "description": "Assinaturas mensais da operacao",
+      "value": "R$ 1.350,00"
+    },
+    {
+      "id": 206,
+      "type": "despesa-fixa",
+      "name": "Folha Operacional",
+      "description": "Equipe fixa e apoio mensal",
+      "value": "R$ 9.000,00"
+    },
+    {
+      "id": 207,
+      "type": "despesa-variavel",
+      "name": "Compra de Midia Extra",
+      "description": "Impulsionamento adicional do mes",
+      "value": "R$ 3.200,00"
+    },
+    {
+      "id": 208,
+      "type": "despesa-variavel",
+      "name": "Freelancer de Edicao",
+      "description": "Demanda extra de conteudo",
+      "value": "R$ 1.150,00"
+    }
+  ],
+  "adminEvents": [
+    {
+      "id": 1776099428906,
+      "monthIndex": 0,
+      "day": 15,
+      "title": "asdasdas",
+      "time": "12:03",
+      "owner": "Pedro Costa",
+      "description": "",
+      "type": "reuniao"
+    }
+  ],
+  "clientEvents": []
+}
