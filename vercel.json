@@ -1,13 +1,55 @@
 {
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "styles.css",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "styles-v3.css",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "app.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "app-main.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "app-v3.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "assets/(.*)",
+      "use": "@vercel/static"
+    }
+  ],
   "functions": {
     "api/index.js": {
       "includeFiles": "{assets/**,index.html,styles.css,styles-v3.css,app.js,app-main.js,app-v3.js,data-store.json,lib/**,supabase-client.js}"
     }
   },
-  "rewrites": [
+  "routes": [
     {
-      "source": "/(.*)",
-      "destination": "/api/index"
+      "src": "/api/(.*)",
+      "dest": "/api/index.js"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.js"
     }
   ]
 }
