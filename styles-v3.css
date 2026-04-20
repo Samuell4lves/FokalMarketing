@@ -1,4 +1,6 @@
 :root {
+  --font-sans: "Plus Jakarta Sans", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --font-display: "IvyPresto", "Plus Jakarta Sans", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   --blue: #2c67e9;
   --blue-dark: #1f4fc3;
   --blue-soft: #eef4ff;
@@ -37,7 +39,7 @@ body {
     radial-gradient(circle at top left, rgba(31, 95, 214, 0.06), transparent 28%),
     linear-gradient(180deg, #f9fbff 0%, #f5f7fb 100%);
   color: var(--text);
-  font-family: "Manrope", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--font-sans);
 }
 
 body {
@@ -52,7 +54,7 @@ h4,
 .btn,
 .login-badge,
 .page-head h1 {
-  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-family: var(--font-display);
 }
 
 button,
