@@ -139,9 +139,12 @@ img {
 }
 
 .login-brand-logo {
-  width: 132px;
-  height: auto;
-  max-height: 44px;
+  width: 180px;
+  height: 56px;
+  transform: scale(3.0);
+  transform-origin: center;
+  display: block;
+  max-height: none;
   object-fit: contain;
   flex: 0 0 auto;
 }
