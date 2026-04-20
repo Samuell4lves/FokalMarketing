@@ -2685,7 +2685,7 @@ svg.fill {
     border-right: 0;
     border-bottom: 1px solid var(--line);
     position: static;
-    height: auto;
+    min-height: 100vh;
     overflow: visible;
   }
 
@@ -2798,6 +2798,7 @@ svg.fill {
   }
 
   .sidebar-bottom {
+    margin-top: auto;
     grid-template-columns: minmax(0, 1fr);
     padding: 10px 12px 12px;
     gap: 8px;
