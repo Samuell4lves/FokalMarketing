@@ -516,9 +516,10 @@ function renderClients() {
 
 function renderFinancePage() {
   const sections = [
-    { key: "entradas", types: financeIncomeTypes, title: "Entradas", description: "Todas as receitas e pagamentos recebidos no mês.", prefillType: "receita-fixa" },
-    { key: "despesas-fixas", types: ["despesa-fixa"], title: "Despesas fixas", description: "Assinaturas, contas recorrentes e custos mensais.", prefillType: "despesa-fixa" },
-    { key: "despesas-variaveis", types: ["despesa-variavel"], title: "Despesas variáveis", description: "Compras do mês, parcelas e gastos inesperados.", prefillType: "despesa-variavel" },
+    { key: "receita-fixa", types: ["receita-fixa"], title: "Receita fixa", description: "Receitas recorrentes, contratos e entradas previsíveis.", prefillType: "receita-fixa" },
+    { key: "receita-variavel", types: ["receita-variavel"], title: "Receita variável", description: "Entradas avulsas, bônus e recebimentos não recorrentes.", prefillType: "receita-variavel" },
+    { key: "despesa-fixa", types: ["despesa-fixa"], title: "Despesa fixa", description: "Assinaturas, contas recorrentes e custos mensais.", prefillType: "despesa-fixa" },
+    { key: "despesa-variavel", types: ["despesa-variavel"], title: "Despesa variável", description: "Compras do mês, parcelas e gastos inesperados.", prefillType: "despesa-variavel" },
   ];
   const selectedMonth = Number(state.ui.financeMonthFilter);
   const selectedYear = Number(state.ui.financeYearFilter);
@@ -559,24 +560,29 @@ function renderFinancePage() {
       </div>
       <div class="finance-overview-grid">
         <div class="finance-overview-card">
-          <span>Entradas</span>
-          <strong>${summary.totalEntradasLabel}</strong>
-          <small>Total recebido no mês selecionado</small>
+          <span>Receita fixa</span>
+          <strong>${summary.receitasFixasLabel}</strong>
+          <small>Entradas recorrentes do mês selecionado</small>
         </div>
         <div class="finance-overview-card">
-          <span>Despesas</span>
-          <strong>${summary.totalDespesasLabel}</strong>
-          <small>${summary.despesasFixasLabel} fixas + ${summary.despesasVariaveisLabel} variáveis</small>
+          <span>Receita variável</span>
+          <strong>${summary.receitasVariaveisLabel}</strong>
+          <small>Entradas avulsas do mês selecionado</small>
+        </div>
+        <div class="finance-overview-card">
+          <span>Despesa fixa</span>
+          <strong>${summary.despesasFixasLabel}</strong>
+          <small>Custos recorrentes do mês selecionado</small>
+        </div>
+        <div class="finance-overview-card">
+          <span>Despesa variável</span>
+          <strong>${summary.despesasVariaveisLabel}</strong>
+          <small>Gastos pontuais do mês selecionado</small>
         </div>
         <div class="finance-overview-card">
           <span>Lucro final</span>
           <strong>${summary.saldoLabel}</strong>
           <small>${summary.saldo >= 0 ? "Resultado positivo no mês" : "Resultado negativo no mês"}</small>
-        </div>
-        <div class="finance-overview-card">
-          <span>Margem</span>
-          <strong>${summary.margemLabel}</strong>
-          <small>${summary.margemPercentual}% das entradas restantes</small>
         </div>
       </div>
     </section>
@@ -590,7 +596,7 @@ function renderFinancePage() {
 function renderFinanceSection(section, sourceItems = financeItems) {
   const items = sourceItems.filter((item) => section.types.includes(item.type));
   const total = formatCurrencyFromNumber(items.reduce((sum, item) => sum + parseCurrency(item.value), 0));
-  const toneClass = section.key === "entradas" ? "finance-tone-income" : "finance-tone-expense";
+  const toneClass = section.key.startsWith("receita") ? "finance-tone-income" : "finance-tone-expense";
   return `
     <article class="panel finance-section ${toneClass}">
       <div class="finance-section-head">
@@ -1545,10 +1551,11 @@ function renderModal() {
           <form id="${item ? "edit-finance-item-form" : "finance-item-form"}" class="modal-form">
             ${item ? `<input type="hidden" name="id" value="${item.id}" />` : ""}
             <div class="field"><label>Seção</label><select name="type">${[
-              ["receita-fixa", "Entradas"],
+              ["receita-fixa", "Receita fixa"],
+              ["receita-variavel", "Receita variável"],
               ["despesa-fixa", "Despesas fixas"],
               ["despesa-variavel", "Despesas variáveis"],
-            ].map(([value, label]) => `<option value="${value}" ${normalizeFinanceType(selectedType) === value ? "selected" : ""}>${label}</option>`).join("")}</select></div>
+            ].map(([value, label]) => `<option value="${value}" ${selectedType === value ? "selected" : ""}>${label}</option>`).join("")}</select></div>
             <div class="field"><label>Nome</label><input name="name" value="${escapeHtml(item?.name || "")}" placeholder="Nome do lançamento" required /></div>
             <div class="field"><label>Data do lançamento</label><input name="date" type="date" value="${escapeHtml(item?.date || getSelectedFinancePeriodDate())}" required /></div>
             <div class="field"><label>Descrição</label><textarea name="description" rows="4" placeholder="Descreva esse valor" required>${escapeHtml(item?.description || "")}</textarea></div>
@@ -2580,8 +2587,7 @@ function normalizeFinanceDate(value) {
 
 function normalizeFinanceType(value) {
   const normalized = String(value || "").trim();
-  if (normalized === "receita-variavel") return "receita-fixa";
-  if (normalized === "despesa-fixa" || normalized === "despesa-variavel") return normalized;
+  if (normalized === "receita-fixa" || normalized === "receita-variavel" || normalized === "despesa-fixa" || normalized === "despesa-variavel") return normalized;
   return financeIncomeTypes.includes(normalized) ? normalized : "receita-fixa";
 }
 
