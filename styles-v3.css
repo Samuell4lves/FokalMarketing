@@ -834,6 +834,16 @@ img {
   line-height: 1;
 }
 
+.modal-close svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
 .modal-form {
   display: grid;
   gap: 14px;

@@ -4,6 +4,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const zlib = require("zlib");
 const { hasSupabaseEnv, getSupabaseClient } = require("./supabase-client");
 const {
   expandEventRecords,
@@ -60,6 +61,14 @@ const mimeTypes = {
   ".jpeg": "image/jpeg",
   ".svg": "image/svg+xml",
 };
+const compressibleMimeTypes = new Set([
+  "application/javascript; charset=utf-8",
+  "application/json; charset=utf-8",
+  "image/svg+xml",
+  "text/css; charset=utf-8",
+  "text/html; charset=utf-8",
+]);
+const longCacheExtensions = new Set([".png", ".jpg", ".jpeg", ".svg"]);
 
 function handleRequest(request, response) {
   const urlPath = decodeURIComponent(request.url.split("?")[0]);
@@ -244,19 +253,50 @@ function handleRequest(request, response) {
 
   fs.stat(filePath, (error, stats) => {
     if (!error && stats.isFile()) {
-      serveFile(filePath, response);
+      serveFile(request, filePath, response, stats);
       return;
     }
 
-    serveFile(path.join(root, "index.html"), response);
+    serveFile(request, path.join(root, "index.html"), response);
   });
 }
 
 const server = http.createServer(handleRequest);
 
-function serveFile(filePath, response) {
+function serveFile(request, filePath, response, stats = null) {
+  if (!stats) {
+    fs.stat(filePath, (error, fileStats) => {
+      if (error || !fileStats.isFile()) {
+        response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+        response.end("Arquivo nao encontrado.");
+        return;
+      }
+
+      serveFile(request, filePath, response, fileStats);
+    });
+    return;
+  }
+
   const extension = path.extname(filePath).toLowerCase();
   const contentType = mimeTypes[extension] || "application/octet-stream";
+  const etag = `W/"${stats.size.toString(16)}-${Math.floor(stats.mtimeMs).toString(16)}"`;
+  const cacheControl = extension === ".html"
+    ? "no-cache"
+    : longCacheExtensions.has(extension)
+      ? "public, max-age=86400, stale-while-revalidate=604800"
+      : "public, max-age=0, must-revalidate";
+  const headers = {
+    "Content-Type": contentType,
+    "Cache-Control": cacheControl,
+    ETag: etag,
+    "Last-Modified": stats.mtime.toUTCString(),
+  };
+
+  if (request.headers["if-none-match"] === etag) {
+    response.writeHead(304, headers);
+    response.end();
+    return;
+  }
 
   fs.readFile(filePath, (error, content) => {
     if (error) {
@@ -265,14 +305,53 @@ function serveFile(filePath, response) {
       return;
     }
 
-    response.writeHead(200, {
-      "Content-Type": contentType,
-      "Cache-Control": "no-store, no-cache, must-revalidate",
-      Pragma: "no-cache",
-      Expires: "0",
-    });
-    response.end(content);
+    sendStaticContent(request, response, content, headers, contentType);
   });
+}
+
+function sendStaticContent(request, response, content, headers, contentType) {
+  const acceptEncoding = String(request.headers["accept-encoding"] || "");
+
+  if (content.length < 1024 || !compressibleMimeTypes.has(contentType)) {
+    response.writeHead(200, { ...headers, "Content-Length": content.length });
+    response.end(content);
+    return;
+  }
+
+  if (acceptEncoding.includes("br")) {
+    zlib.brotliCompress(content, (error, compressed) => {
+      if (error) return sendUncompressed(response, content, headers);
+      response.writeHead(200, {
+        ...headers,
+        "Content-Encoding": "br",
+        "Content-Length": compressed.length,
+        Vary: "Accept-Encoding",
+      });
+      response.end(compressed);
+    });
+    return;
+  }
+
+  if (acceptEncoding.includes("gzip")) {
+    zlib.gzip(content, (error, compressed) => {
+      if (error) return sendUncompressed(response, content, headers);
+      response.writeHead(200, {
+        ...headers,
+        "Content-Encoding": "gzip",
+        "Content-Length": compressed.length,
+        Vary: "Accept-Encoding",
+      });
+      response.end(compressed);
+    });
+    return;
+  }
+
+  sendUncompressed(response, content, headers);
+}
+
+function sendUncompressed(response, content, headers) {
+  response.writeHead(200, { ...headers, "Content-Length": content.length });
+  response.end(content);
 }
 
 function readStore() {
@@ -326,7 +405,10 @@ function readJsonBody(request, response, onSuccess) {
 }
 
 function sendJson(response, statusCode, payload) {
-  response.writeHead(statusCode, { "Content-Type": "application/json; charset=utf-8" });
+  response.writeHead(statusCode, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store",
+  });
   response.end(JSON.stringify(payload));
 }
 

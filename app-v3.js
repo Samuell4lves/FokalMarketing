@@ -1364,7 +1364,7 @@ function renderModal() {
         <div class="modal-card">
           <div class="modal-head">
             <div><h3>Novo Cliente</h3><p>Crie uma conta individual de acesso para este cliente.</p></div>
-            <button type="button" class="modal-close" data-action="close-modal">×</button>
+            <button type="button" class="modal-close" data-action="close-modal" aria-label="Fechar">${icon("x")}</button>
           </div>
           <form id="client-form" class="modal-form">
             <div class="field"><label>Nome</label><input name="nome" required /></div>
@@ -1389,7 +1389,7 @@ function renderModal() {
         <div class="modal-card">
           <div class="modal-head">
             <div><h3>Novo usuário</h3><p>Crie um acesso de administrador ou cliente no Supabase.</p></div>
-            <button type="button" class="modal-close" data-action="close-modal">×</button>
+            <button type="button" class="modal-close" data-action="close-modal" aria-label="Fechar">${icon("x")}</button>
           </div>
           <form id="user-form" class="modal-form">
             <div class="field"><label>Nome Completo</label><input name="nome" required /></div>
@@ -1421,7 +1421,7 @@ function renderModal() {
         <div class="modal-card">
           <div class="modal-head">
             <div><h3>Editar Cliente</h3><p>Atualize os dados da conta do cliente.</p></div>
-            <button type="button" class="modal-close" data-action="close-modal">×</button>
+            <button type="button" class="modal-close" data-action="close-modal" aria-label="Fechar">${icon("x")}</button>
           </div>
           <form id="edit-client-form" class="modal-form">
             <input type="hidden" name="id" value="${client.id}" />
@@ -1447,7 +1447,7 @@ function renderModal() {
         <div class="modal-card">
           <div class="modal-head">
             <div><h3>Nova atividade</h3><p>Cadastre uma nova tarefa ou compromisso do admin.</p></div>
-            <button type="button" class="modal-close" data-action="close-modal">×</button>
+            <button type="button" class="modal-close" data-action="close-modal" aria-label="Fechar">${icon("x")}</button>
           </div>
           <form id="activity-form" class="modal-form">
             <div class="field"><label>Título</label><input name="title" placeholder="Ex.: Reunião de alinhamento" required /></div>
@@ -1480,7 +1480,7 @@ function renderModal() {
         <div class="modal-card">
           <div class="modal-head">
             <div><h3>${item ? "Editar lançamento" : "Novo lançamento financeiro"}</h3><p>${item ? "Atualize os dados do lançamento." : "Cadastre entradas e saídas do mês."}</p></div>
-            <button type="button" class="modal-close" data-action="close-modal">×</button>
+            <button type="button" class="modal-close" data-action="close-modal" aria-label="Fechar">${icon("x")}</button>
           </div>
           <form id="${item ? "edit-finance-item-form" : "finance-item-form"}" class="modal-form">
             ${item ? `<input type="hidden" name="id" value="${item.id}" />` : ""}
@@ -1512,7 +1512,7 @@ function renderModal() {
         <div class="modal-card">
           <div class="modal-head">
             <div><h3>${deal ? "Editar negócio" : "Novo negócio"}</h3><p>${deal ? "Atualize os dados do negócio selecionado." : "Cadastre uma nova oportunidade comercial."}</p></div>
-            <button type="button" class="modal-close" data-action="close-modal">×</button>
+            <button type="button" class="modal-close" data-action="close-modal" aria-label="Fechar">${icon("x")}</button>
           </div>
           <form id="${deal ? "edit-deal-form" : "deal-form"}" class="modal-form">
             ${deal ? `<input type="hidden" name="id" value="${deal.id}" />` : ""}
@@ -1549,7 +1549,7 @@ function renderModal() {
         <div class="modal-card">
           <div class="modal-head">
             <div><h3>Nova tarefa</h3><p>${formatFullDate(state.ui.adminSelectedDate)}</p></div>
-            <button type="button" class="modal-close" data-action="close-modal">×</button>
+            <button type="button" class="modal-close" data-action="close-modal" aria-label="Fechar">${icon("x")}</button>
           </div>
           <form id="admin-event-form" class="modal-form">
             <div class="field"><label>Titulo</label><input name="title" placeholder="Reuniao de alinhamento" required /></div>
@@ -1576,7 +1576,7 @@ function renderModal() {
         <div class="modal-card modal-card-small">
           <div class="modal-head">
             <div><h3>Confirmar horário</h3><p>Selecione um horário para confirmar.</p></div>
-            <button type="button" class="modal-close" data-action="close-modal">×</button>
+            <button type="button" class="modal-close" data-action="close-modal" aria-label="Fechar">${icon("x")}</button>
           </div>
           <div class="slot-grid">
             ${["09:00", "10:00", "11:00", "14:00", "15:30", "16:30"].map((slot) => `<button class="btn btn-outline slot-btn" data-action="confirm-client-slot" data-value="${slot}">${slot}</button>`).join("")}
@@ -1595,7 +1595,7 @@ function renderModal() {
         <div class="modal-card">
           <div class="modal-head">
             <div><h3>Editar tarefa</h3><p>Ajuste os dados da tarefa.</p></div>
-            <button type="button" class="modal-close" data-action="close-modal">×</button>
+            <button type="button" class="modal-close" data-action="close-modal" aria-label="Fechar">${icon("x")}</button>
           </div>
           <form id="edit-admin-event-form" class="modal-form">
             <input type="hidden" name="id" value="${event.id}" />
@@ -1639,7 +1639,7 @@ function renderModal() {
         <div class="modal-card modal-card-small">
           <div class="modal-head">
             <div><h3>Editar horário</h3><p>Escolha um novo horário para confirmar.</p></div>
-            <button type="button" class="modal-close" data-action="close-modal">×</button>
+            <button type="button" class="modal-close" data-action="close-modal" aria-label="Fechar">${icon("x")}</button>
           </div>
           <div class="slot-grid">
             ${["09:00", "10:00", "11:00", "14:00", "15:30", "16:30"].map((slot) => `<button class="btn ${event.time === slot ? "btn-primary" : "btn-outline"} slot-btn" data-action="update-client-slot" data-value="${event.id}|${slot}">${slot}</button>`).join("")}
@@ -1658,7 +1658,7 @@ function renderModal() {
         <div class="modal-card">
           <div class="modal-head">
             <div><h3>${item ? "Editar conteúdo" : "Novo conteúdo"}</h3><p>${item ? "Atualize as informações deste conteúdo." : "Cadastre um novo conteúdo para alimentar o dashboard."}</p></div>
-            <button type="button" class="modal-close" data-action="close-modal">Ã—</button>
+            <button type="button" class="modal-close" data-action="close-modal" aria-label="Fechar">${icon("x")}</button>
           </div>
           <form id="${item ? "edit-content-form" : "content-form"}" class="modal-form">
             ${item ? `<input type="hidden" name="id" value="${item.id}" />` : ""}
@@ -1689,7 +1689,7 @@ function renderModal() {
         <div class="modal-card">
           <div class="modal-head">
             <div><h3>${item ? "Editar campanha" : "Nova campanha"}</h3><p>${item ? "Atualize os indicadores da campanha." : "Cadastre uma campanha de tráfego pago."}</p></div>
-            <button type="button" class="modal-close" data-action="close-modal">Ã—</button>
+            <button type="button" class="modal-close" data-action="close-modal" aria-label="Fechar">${icon("x")}</button>
           </div>
           <form id="${item ? "edit-campaign-form" : "campaign-form"}" class="modal-form">
             ${item ? `<input type="hidden" name="id" value="${item.id}" />` : ""}
@@ -2244,16 +2244,6 @@ async function loadBootstrap() {
     if (state.session && !state.session.token) {
       clearSession();
       throw new Error("Sessão antiga sem token.");
-    }
-
-    if (state.session?.role !== "cliente") {
-      const usersResponse = await fetch("/api/usuarios", { headers: getAuthHeaders() });
-      if (usersResponse.ok) {
-        const usersData = await usersResponse.json();
-        if (Array.isArray(usersData)) {
-          registeredUsers = usersData;
-        }
-      }
     }
 
     await refreshAppState();
@@ -3207,6 +3197,7 @@ function icon(name) {
     chevronLeft: `<svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>`,
     chevronRight: `<svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg>`,
     eye: `<svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
+    x: `<svg viewBox="0 0 24 24"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>`,
     spinner: `<svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3.2-6.9"></path></svg>`,
     settings: `<svg viewBox="0 0 24 24"><path d="M10.2 2h3.6l1 2.6 2.6.8 2.3-1.5 2.5 2.5-1.5 2.3.8 2.6 2.5 1v3.6l-2.5 1-.8 2.6 1.5 2.3-2.5 2.5-2.3-1.5-2.6.8-1 2.5h-3.6l-1-2.5-2.6-.8-2.3 1.5-2.5-2.5 1.5-2.3-.8-2.6-2.5-1v-3.6l2.5-1 .8-2.6-1.5-2.3 2.5-2.5 2.3 1.5 2.6-.8 1-2.6Z"></path><circle cx="12" cy="12" r="3.2"></circle></svg>`,
     message: `<svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.5 0-2.91-.39-4.13-1.07L3 20l1.2-5.07A8.5 8.5 0 1 1 21 11.5z"></path></svg>`,
