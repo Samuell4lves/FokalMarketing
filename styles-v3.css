@@ -1297,13 +1297,20 @@ img {
   background: linear-gradient(180deg, #eefcf3 0%, #ffffff 100%);
 }
 
+.finance-tone-profit {
+  border-color: rgba(37, 99, 235, 0.22);
+  background: linear-gradient(180deg, #f5f9ff 0%, #ffffff 100%);
+}
+
 .finance-tone-expense {
   border-color: rgba(239, 68, 68, 0.24);
   background: linear-gradient(180deg, #fff1ef 0%, #ffffff 100%);
 }
 
 .finance-tone-income .finance-section-head h3,
-.finance-tone-income .finance-section-actions strong {
+.finance-tone-income .finance-section-actions strong,
+.finance-tone-profit .finance-section-head h3,
+.finance-tone-profit .finance-section-actions strong {
   color: #166534;
 }
 
@@ -1338,6 +1345,26 @@ img {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.finance-head-actions,
+.finance-period-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.finance-profit-total {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.finance-profit-total span {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .finance-items {
@@ -2161,6 +2188,11 @@ img {
   background: linear-gradient(180deg, #f5fff8 0%, #ffffff 100%);
 }
 
+.task-tone-yellow {
+  border-color: rgba(245, 158, 11, 0.24);
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);
+}
+
 .task-tone-purple {
   border-color: rgba(168, 85, 247, 0.22);
   background: linear-gradient(180deg, #fbf7ff 0%, #ffffff 100%);
@@ -2179,6 +2211,11 @@ img {
 .event-type-badge.task-tone-green {
   background: rgba(34, 197, 94, 0.14);
   color: #15803d;
+}
+
+.event-type-badge.task-tone-yellow {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
 }
 
 .event-type-badge.task-tone-purple {

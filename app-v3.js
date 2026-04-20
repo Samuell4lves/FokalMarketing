@@ -13,6 +13,8 @@ const state = {
     adminSelectedDate: getTodayIso(),
     clientSelectedDate: getTodayIso(),
     adminClientFilter: "all",
+    financeMonthFilter: String(new Date().getMonth()),
+    financeYearFilter: String(new Date().getFullYear()),
     reportsClientFilter: "all",
     reportsMonthFilter: String(new Date().getMonth()),
     reportsYearFilter: String(new Date().getFullYear()),
@@ -25,6 +27,21 @@ const state = {
 };
 
 const planOptions = ["Produção de Conteúdo", "Gestão de Tráfego", "Ambos"];
+const financeIncomeTypes = ["receita-fixa", "receita-variavel"];
+const eventCategories = [
+  { value: "gravacao", label: "Gravação", color: "#2563eb", tone: "task-tone-blue" },
+  { value: "roteiros", label: "Roteiros", color: "#f59e0b", tone: "task-tone-yellow" },
+  { value: "conteudo", label: "Conteúdo", color: "#a855f7", tone: "task-tone-purple" },
+  { value: "relatorio", label: "Relatório", color: "#22c55e", tone: "task-tone-green" },
+];
+const legacyEventCategoryMap = {
+  reuniao: "gravacao",
+  reunião: "gravacao",
+  ligacao: "roteiros",
+  ligação: "roteiros",
+  tarefa: "conteudo",
+  prazo: "relatorio",
+};
 
 let registeredUsers = [];
 let calendarTasks = [];
@@ -150,6 +167,9 @@ document.body.addEventListener("change", (event) => {
   }
   if (event.target.matches("[data-report-filter]")) {
     handleReportFilter(event.target.dataset.reportFilter, event.target.value);
+  }
+  if (event.target.matches("[data-finance-filter]")) {
+    handleFinanceFilter(event.target.dataset.financeFilter, event.target.value);
   }
 });
 
@@ -496,33 +516,52 @@ function renderClients() {
 
 function renderFinancePage() {
   const sections = [
-    { type: "receita-fixa", title: "Receitas fixas", description: "Rendas fixas mensais e contratos recorrentes." },
-    { type: "receita-variavel", title: "Receitas variáveis", description: "Entradas extras, avulsas e pagamentos recebidos." },
-    { type: "despesa-fixa", title: "Despesas fixas", description: "Assinaturas, contas recorrentes e custos mensais." },
-    { type: "despesa-variavel", title: "Despesas variáveis", description: "Compras do mês, parcelas e gastos inesperados." },
+    { key: "entradas", types: financeIncomeTypes, title: "Entradas", description: "Todas as receitas e pagamentos recebidos no mês.", prefillType: "receita-fixa" },
+    { key: "despesas-fixas", types: ["despesa-fixa"], title: "Despesas fixas", description: "Assinaturas, contas recorrentes e custos mensais.", prefillType: "despesa-fixa" },
+    { key: "despesas-variaveis", types: ["despesa-variavel"], title: "Despesas variáveis", description: "Compras do mês, parcelas e gastos inesperados.", prefillType: "despesa-variavel" },
   ];
-  const summary = getFinanceSummary();
+  const selectedMonth = Number(state.ui.financeMonthFilter);
+  const selectedYear = Number(state.ui.financeYearFilter);
+  const filteredItems = getFinanceItemsForPeriod(selectedMonth, selectedYear);
+  const summary = getFinanceSummary(filteredItems);
+  const years = buildFinanceYearOptions();
 
   return `
     <div class="page-head-row">
       <div class="page-head">
         <h1>Financeiro</h1>
-        <p>Controle entradas, saídas e saldo final do mês em um só lugar</p>
+        <p>Controle entradas, despesas e lucro final por mês e ano</p>
       </div>
-      <button class="btn btn-primary" data-action="new-finance-item">${icon("plus")}Novo lançamento</button>
+      <div class="finance-head-actions">
+        <div class="finance-period-controls">
+          <label class="filter-box filter-select">
+            <select data-finance-filter="month">
+              ${monthOptions().map((month, index) => `<option value="${index}" ${selectedMonth === index ? "selected" : ""}>${month}</option>`).join("")}
+            </select>
+            ${icon("chevronDown")}
+          </label>
+          <label class="filter-box filter-select">
+            <select data-finance-filter="year">
+              ${years.map((year) => `<option value="${year}" ${selectedYear === year ? "selected" : ""}>${year}</option>`).join("")}
+            </select>
+            ${icon("chevronDown")}
+          </label>
+        </div>
+        <button class="btn btn-primary" data-action="new-finance-item">${icon("plus")}Novo lançamento</button>
+      </div>
     </div>
     <section class="panel finance-overview">
       <div class="finance-overview-head">
         <div>
-          <h3>Resumo financeiro</h3>
-          <p>Cálculo automático com base em todos os lançamentos cadastrados</p>
+          <h3>Resumo de ${monthOptions()[selectedMonth]} de ${selectedYear}</h3>
+          <p>Cálculo automático com base nos lançamentos do período selecionado</p>
         </div>
       </div>
       <div class="finance-overview-grid">
         <div class="finance-overview-card">
           <span>Entradas</span>
           <strong>${summary.totalEntradasLabel}</strong>
-          <small>${summary.receitasFixasLabel} fixas + ${summary.receitasVariaveisLabel} variáveis</small>
+          <small>Total recebido no mês selecionado</small>
         </div>
         <div class="finance-overview-card">
           <span>Despesas</span>
@@ -530,7 +569,7 @@ function renderFinancePage() {
           <small>${summary.despesasFixasLabel} fixas + ${summary.despesasVariaveisLabel} variáveis</small>
         </div>
         <div class="finance-overview-card">
-          <span>Saldo final</span>
+          <span>Lucro final</span>
           <strong>${summary.saldoLabel}</strong>
           <small>${summary.saldo >= 0 ? "Resultado positivo no mês" : "Resultado negativo no mês"}</small>
         </div>
@@ -542,15 +581,16 @@ function renderFinancePage() {
       </div>
     </section>
     <section class="finance-sections">
-      ${sections.map((section) => renderFinanceSection(section)).join("")}
+      ${sections.map((section) => renderFinanceSection(section, filteredItems)).join("")}
+      ${renderFinanceProfitSection(summary)}
     </section>
   `;
 }
 
-function renderFinanceSection(section) {
-  const items = financeItems.filter((item) => item.type === section.type);
+function renderFinanceSection(section, sourceItems = financeItems) {
+  const items = sourceItems.filter((item) => section.types.includes(item.type));
   const total = formatCurrencyFromNumber(items.reduce((sum, item) => sum + parseCurrency(item.value), 0));
-  const toneClass = section.type.startsWith("receita") ? "finance-tone-income" : "finance-tone-expense";
+  const toneClass = section.key === "entradas" ? "finance-tone-income" : "finance-tone-expense";
   return `
     <article class="panel finance-section ${toneClass}">
       <div class="finance-section-head">
@@ -560,11 +600,29 @@ function renderFinanceSection(section) {
         </div>
         <div class="finance-section-actions">
           <strong>${total}</strong>
-          <button class="btn btn-outline btn-small" data-action="new-finance-item" data-value="${section.type}">${icon("plus")}Adicionar</button>
+          <button class="btn btn-outline btn-small" data-action="new-finance-item" data-value="${section.prefillType}">${icon("plus")}Adicionar</button>
         </div>
       </div>
       <div class="finance-items">
         ${items.length ? items.map(renderFinanceItemCard).join("") : `<div class="finance-empty">Nenhum lançamento cadastrado nesta seção.</div>`}
+      </div>
+    </article>
+  `;
+}
+
+function renderFinanceProfitSection(summary) {
+  const toneClass = summary.saldo >= 0 ? "finance-tone-profit" : "finance-tone-expense";
+  return `
+    <article class="panel finance-section ${toneClass}">
+      <div class="finance-section-head">
+        <div>
+          <h3>Lucro final</h3>
+          <p>Entradas menos despesas fixas e variáveis do mês selecionado.</p>
+        </div>
+        <div class="finance-section-actions finance-profit-total">
+          <span>${summary.totalEntradasLabel} - ${summary.totalDespesasLabel}</span>
+          <strong>${summary.saldoLabel}</strong>
+        </div>
       </div>
     </article>
   `;
@@ -698,12 +756,7 @@ function renderAdminCalendar() {
           </div>
         </div>
         ${renderCalendarGrid("admin", visibleMonth, filteredTasks, selectedDate)}
-        <div class="calendar-legend">
-          <span class="legend-chip"><span class="dot" style="background:#2563eb"></span>Reunião</span>
-          <span class="legend-chip"><span class="dot" style="background:#22c55e"></span>Ligação</span>
-          <span class="legend-chip"><span class="dot" style="background:#a855f7"></span>Tarefa</span>
-          <span class="legend-chip"><span class="dot" style="background:#ef4444"></span>Prazo</span>
-        </div>
+        ${renderEventCategoryLegend()}
       </article>
       <article class="calendar-panel">
         <div class="side-date">
@@ -719,7 +772,7 @@ function renderAdminCalendar() {
                 <article class="event-card ${taskToneClass(event.type)}">
                   <div class="row-between">
                     <div>
-                      <span class="event-type-badge ${taskToneClass(event.type)}">${capitalize(event.type)}</span>
+                      <span class="event-type-badge ${taskToneClass(event.type)}">${eventCategoryLabel(event.type)}</span>
                       <h4>${event.title}</h4>
                     </div>
                     ${event.id ? `<div class="event-actions"><button data-action="edit-admin-event" data-value="${event.id}">${icon("edit")}</button><button data-action="delete-admin-event" data-value="${event.id}">${icon("trash")}</button></div>` : ""}
@@ -908,12 +961,7 @@ function renderClientCalendar() {
           </div>
         </div>
         ${renderCalendarGrid("cliente", visibleMonth, visibleTasks, selectedDate)}
-        <div class="calendar-legend">
-          <span class="legend-chip"><span class="dot" style="background:#2563eb"></span>Reunião</span>
-          <span class="legend-chip"><span class="dot" style="background:#22c55e"></span>Ligação</span>
-          <span class="legend-chip"><span class="dot" style="background:#a855f7"></span>Tarefa</span>
-          <span class="legend-chip"><span class="dot" style="background:#ef4444"></span>Prazo</span>
-        </div>
+        ${renderEventCategoryLegend()}
       </article>
       <article class="calendar-panel">
         <div class="side-date">
@@ -927,7 +975,7 @@ function renderClientCalendar() {
                   <article class="event-card ${taskToneClass(event.type)}">
                     <div class="row-between">
                       <div>
-                        <span class="event-type-badge ${taskToneClass(event.type)}">${capitalize(event.type)}</span>
+                        <span class="event-type-badge ${taskToneClass(event.type)}">${eventCategoryLabel(event.type)}</span>
                         <h4>${event.title}</h4>
                       </div>
                     </div>
@@ -1121,6 +1169,14 @@ function renderCalendarGrid(mode, visibleMonth, tasks, selectedDate) {
           `;
         })
         .join("")}
+    </div>
+  `;
+}
+
+function renderEventCategoryLegend() {
+  return `
+    <div class="calendar-legend">
+      ${eventCategories.map((category) => `<span class="legend-chip"><span class="dot" style="background:${category.color}"></span>${category.label}</span>`).join("")}
     </div>
   `;
 }
@@ -1339,6 +1395,18 @@ function renderClientSelectionField(clients, selectedIds = []) {
   `;
 }
 
+function renderEventCategorySelect(selectedType = "gravacao") {
+  const selectedCategory = normalizeEventCategory(selectedType);
+  return `
+    <div class="field">
+      <label>Categoria</label>
+      <select name="type">
+        ${eventCategories.map((category) => `<option value="${category.value}" ${selectedCategory === category.value ? "selected" : ""}>${category.label}</option>`).join("")}
+      </select>
+    </div>
+  `;
+}
+
 function renderNotFound() {
   return `<section class="screen"><div class="content">${renderNotFoundInner()}</div></section>`;
 }
@@ -1477,13 +1545,12 @@ function renderModal() {
           <form id="${item ? "edit-finance-item-form" : "finance-item-form"}" class="modal-form">
             ${item ? `<input type="hidden" name="id" value="${item.id}" />` : ""}
             <div class="field"><label>Seção</label><select name="type">${[
-              ["receita-fixa", "Receitas fixas"],
-              ["receita-variavel", "Receitas variáveis"],
+              ["receita-fixa", "Entradas"],
               ["despesa-fixa", "Despesas fixas"],
               ["despesa-variavel", "Despesas variáveis"],
-            ].map(([value, label]) => `<option value="${value}" ${selectedType === value ? "selected" : ""}>${label}</option>`).join("")}</select></div>
+            ].map(([value, label]) => `<option value="${value}" ${normalizeFinanceType(selectedType) === value ? "selected" : ""}>${label}</option>`).join("")}</select></div>
             <div class="field"><label>Nome</label><input name="name" value="${escapeHtml(item?.name || "")}" placeholder="Nome do lançamento" required /></div>
-            <div class="field"><label>Data do lançamento</label><input name="date" type="date" value="${escapeHtml(item?.date || getTodayIso())}" required /></div>
+            <div class="field"><label>Data do lançamento</label><input name="date" type="date" value="${escapeHtml(item?.date || getSelectedFinancePeriodDate())}" required /></div>
             <div class="field"><label>Descrição</label><textarea name="description" rows="4" placeholder="Descreva esse valor" required>${escapeHtml(item?.description || "")}</textarea></div>
             <div class="field"><label>Valor</label><input name="value" value="${escapeHtml(item?.value || "")}" placeholder="R$ 0,00" required /></div>
             <div class="modal-actions">
@@ -1549,7 +1616,7 @@ function renderModal() {
             <div class="field"><label>Data</label><input name="date" type="date" value="${state.ui.adminSelectedDate}" required /></div>
             <div class="field"><label>Horario</label><input name="time" type="time" required /></div>
             ${renderClientSelectionField(clients)}
-            <div class="field"><label>Tipo</label><select name="type"><option value="reuniao">Reuniao</option><option value="ligacao">Ligacao</option><option value="tarefa">Tarefa</option><option value="prazo">Prazo</option></select></div>
+            ${renderEventCategorySelect()}
             <div class="field"><label>Status</label><select name="status"><option value="agendada">Agendada</option><option value="pendente">Pendente</option><option value="concluida">Concluida</option><option value="cancelada">Cancelada</option></select></div>
             ${renderRecurrenceFields()}
             <div class="modal-actions">
@@ -1596,7 +1663,7 @@ function renderModal() {
             <div class="field"><label>Data</label><input name="date" type="date" value="${event.date}" required /></div>
             <div class="field"><label>Horário</label><input name="time" type="time" value="${event.time}" required /></div>
             ${renderClientSelectionField(clients, (event.clientIds || []).map(Number))}
-            <div class="field"><label>Tipo</label><select name="type">${["reuniao", "ligacao", "tarefa", "prazo"].map((type) => `<option value="${type}" ${event.type === type ? "selected" : ""}>${capitalize(type)}</option>`).join("")}</select></div>
+            ${renderEventCategorySelect(event.type)}
             <div class="field"><label>Status</label><select name="status">${[
               ["agendada", "Agendada"],
               ["pendente", "Pendente"],
@@ -2419,8 +2486,37 @@ function getCalendarDots(tasks, date) {
   return [...new Set(items.map((item) => colorByEventType(item.type)))];
 }
 
-function getFinanceSummary() {
-  const totalByType = (type) => financeItems.filter((item) => item.type === type).reduce((sum, item) => sum + parseCurrency(item.value), 0);
+function getFinanceItemsForPeriod(monthIndex, year) {
+  return financeItems
+    .map((item) => ({ ...item, type: normalizeFinanceType(item.type), date: normalizeFinanceDate(item.date || getTodayIso()) || getTodayIso() }))
+    .filter((item) => {
+      const date = parseIsoDate(item.date);
+      return date.getMonth() === Number(monthIndex) && date.getFullYear() === Number(year);
+    });
+}
+
+function buildFinanceYearOptions() {
+  const currentYear = new Date().getFullYear();
+  const selectedYear = Number(state.ui.financeYearFilter || currentYear);
+  const years = new Set([currentYear, selectedYear]);
+  financeItems.forEach((item) => {
+    const isoDate = normalizeFinanceDate(item.date || getTodayIso());
+    if (isoDate) years.add(parseIsoDate(isoDate).getFullYear());
+  });
+  return [...years].sort((a, b) => b - a);
+}
+
+function getSelectedFinancePeriodDate() {
+  const year = Number(state.ui.financeYearFilter || new Date().getFullYear());
+  const month = Number(state.ui.financeMonthFilter || new Date().getMonth());
+  const today = new Date();
+  const day = year === today.getFullYear() && month === today.getMonth() ? today.getDate() : 1;
+  return toIsoDate(new Date(year, month, day));
+}
+
+function getFinanceSummary(items = financeItems) {
+  const normalizedItems = items.map((item) => ({ ...item, type: normalizeFinanceType(item.type) }));
+  const totalByType = (type) => normalizedItems.filter((item) => item.type === type).reduce((sum, item) => sum + parseCurrency(item.value), 0);
   const receitasFixas = totalByType("receita-fixa");
   const receitasVariaveis = totalByType("receita-variavel");
   const despesasFixas = totalByType("despesa-fixa");
@@ -2480,6 +2576,13 @@ function getFinanceMonthlyProfitSeries() {
 function normalizeFinanceDate(value) {
   const normalized = String(value || "").trim();
   return /^\d{4}-\d{2}-\d{2}$/.test(normalized) ? normalized : "";
+}
+
+function normalizeFinanceType(value) {
+  const normalized = String(value || "").trim();
+  if (normalized === "receita-variavel") return "receita-fixa";
+  if (normalized === "despesa-fixa" || normalized === "despesa-variavel") return normalized;
+  return financeIncomeTypes.includes(normalized) ? normalized : "receita-fixa";
 }
 
 function formatFinanceDate(value) {
@@ -2874,6 +2977,12 @@ function handleReportFilter(filter, value) {
   renderRoute();
 }
 
+function handleFinanceFilter(filter, value) {
+  if (filter === "month") state.ui.financeMonthFilter = String(value);
+  if (filter === "year") state.ui.financeYearFilter = String(value);
+  renderRoute();
+}
+
 function getCalendarCells(visibleMonth) {
   const start = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
   const end = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 0);
@@ -2979,17 +3088,25 @@ function isSameDateIso(a, b) {
 }
 
 function taskToneClass(type) {
-  if (type === "ligacao") return "task-tone-green";
-  if (type === "prazo") return "task-tone-red";
-  if (type === "tarefa") return "task-tone-purple";
-  return "task-tone-blue";
+  return getEventCategory(type).tone;
 }
 
 function colorByEventType(type) {
-  if (type === "ligacao") return "#22c55e";
-  if (type === "tarefa") return "#a855f7";
-  if (type === "prazo") return "#ef4444";
-  return "#2563eb";
+  return getEventCategory(type).color;
+}
+
+function eventCategoryLabel(type) {
+  return getEventCategory(type).label;
+}
+
+function getEventCategory(type) {
+  const normalized = normalizeEventCategory(type);
+  return eventCategories.find((category) => category.value === normalized) || eventCategories[0];
+}
+
+function normalizeEventCategory(type) {
+  const normalized = String(type || "").trim().toLowerCase();
+  return legacyEventCategoryMap[normalized] || (eventCategories.some((category) => category.value === normalized) ? normalized : "gravacao");
 }
 
 function escapeHtml(value) {

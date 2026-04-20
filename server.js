@@ -1016,7 +1016,7 @@ function normalizeCalendarBody(body, sourceRole) {
     date,
     time: normalizeTimeValue(body.time),
     clientIds,
-    type: String(body.type || "tarefa"),
+    type: String(body.type || "gravacao"),
     status: String(body.status || "agendada").toLowerCase(),
     recurrenceType: body.recurrenceType || body.repeticao_tipo || body.recurrence?.type || "none",
     recurrenceInterval: body.recurrenceInterval || body.repetitionInterval || body.recurrence?.interval,
@@ -1285,7 +1285,7 @@ function normalizeTaskRecord(payload) {
     date: payload.date || payload.data,
     time: payload.time || payload.hora,
     clientIds: payload.clientIds || payload.cliente_ids || payload.cliente_id || payload.clientId,
-    type: payload.type || payload.tipo || "tarefa",
+    type: payload.type || payload.tipo || "gravacao",
     status: payload.status || "agendada",
   });
 }
