@@ -127,8 +127,8 @@ img {
 .login-brand-chip {
   display: inline-flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 16px 10px 12px;
+  justify-content: center;
+  padding: 10px 14px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.24);
@@ -136,28 +136,12 @@ img {
   backdrop-filter: blur(10px);
 }
 
-.login-brand-chip img {
-  width: 56px;
-  height: 56px;
+.login-brand-logo {
+  width: 132px;
+  height: auto;
+  max-height: 44px;
   object-fit: contain;
   flex: 0 0 auto;
-}
-
-.login-brand-chip strong,
-.login-brand-chip span {
-  display: block;
-}
-
-.login-brand-chip strong {
-  font-family: "Space Grotesk", "Manrope", sans-serif;
-  font-size: 22px;
-  line-height: 1;
-}
-
-.login-brand-chip span {
-  margin-top: 4px;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.84);
 }
 
 .login-brand-main {

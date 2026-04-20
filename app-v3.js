@@ -1145,11 +1145,7 @@ function renderLoginBrand() {
     <section class="login-brand">
       <div class="login-brand-top">
         <div class="login-brand-chip">
-          <img src="/assets/icon-white-custom.png" alt="Fokal Logo" />
-          <div>
-            <strong>FOKAL</strong>
-            <span>Company</span>
-          </div>
+          <img class="login-brand-logo" src="/assets/icon-white-custom.png?v=2" alt="Fokal" />
         </div>
       </div>
       <div class="login-brand-main">
@@ -1290,11 +1286,7 @@ function renderLoginBrand() {
     <section class="login-brand">
       <div class="login-brand-top">
         <div class="login-brand-chip">
-          <img src="/assets/icon-white-custom.png" alt="Fokal Logo" />
-          <div>
-            <strong>FOKAL</strong>
-            <span>Company</span>
-          </div>
+          <img class="login-brand-logo" src="/assets/icon-white-custom.png?v=2" alt="Fokal" />
         </div>
       </div>
       <div class="login-brand-main">
