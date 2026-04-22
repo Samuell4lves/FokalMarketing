@@ -942,7 +942,9 @@ img {
   border-color: rgba(255, 255, 255, 0.18);
 }
 
-.nav-item.active:hover {
+.nav-item.active:hover,
+.nav-item.active:focus-visible,
+.nav-item.active:active {
   background: #ffffff;
   color: var(--blue);
   border-color: rgba(255, 255, 255, 0.72);
@@ -1566,6 +1568,12 @@ img {
   background: #f3f5f8;
   color: #5d6778;
   transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.icon-action svg,
+.event-actions button svg {
+  width: 18px;
+  height: 18px;
 }
 
 .icon-action:hover,
@@ -2617,6 +2625,17 @@ img {
 
   .report-row {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .nav-item:hover {
+    transform: none;
+  }
+
+  .nav-item.active:hover {
+    background: #ffffff;
+    color: var(--blue);
   }
 }
 

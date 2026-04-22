@@ -485,7 +485,7 @@ function renderClients() {
     const matchesPlan =
       state.ui.clientPlanFilter === "Todos" ||
       normalizePlanType(client.planType) === state.ui.clientPlanFilter;
-    const haystack = `${client.nome} ${client.email} ${client.telefone}`.toLowerCase();
+    const haystack = `${client.nome} ${client.nome_empresa || ""} ${client.email} ${client.telefone}`.toLowerCase();
     const matchesSearch = !normalizedSearch || haystack.includes(normalizedSearch);
     return matchesPlan && matchesSearch;
   });
@@ -1008,10 +1008,11 @@ function renderClientCard(client) {
         </div>
       </div>
       <h3>${client.nome}</h3>
-      <p class="contact-role">${client.tipo}</p>
+      <p class="contact-role">${client.nome_empresa || client.tipo}</p>
       <div class="contact-info">
         <div class="contact-line">${icon("mail")} ${client.email}</div>
         <div class="contact-line">${icon("phone")} ${client.telefone || "-"}</div>
+        <div class="contact-line">${icon("building")} ${client.nome_empresa || "-"}</div>
       </div>
       <div class="contact-footer"><span>Perfil de Acesso</span><strong>${client.tipo}</strong></div>
       <div class="contact-footer"><span>Tipo de Plano</span><strong>${normalizePlanType(client.planType)}</strong></div>
@@ -1434,6 +1435,7 @@ function renderModal() {
           </div>
           <form id="client-form" class="modal-form">
             <div class="field"><label>Nome</label><input name="nome" required /></div>
+            <div class="field"><label>Nome da empresa</label><input name="nome_empresa" /></div>
             <div class="field"><label>Email</label><input name="email" type="email" required /></div>
             <div class="field"><label>Telefone</label><input name="telefone" required /></div>
             <div class="field"><label>Senha</label><input name="senha" type="password" required /></div>
@@ -1492,6 +1494,7 @@ function renderModal() {
           <form id="edit-client-form" class="modal-form">
             <input type="hidden" name="id" value="${client.id}" />
             <div class="field"><label>Nome</label><input name="nome" value="${escapeHtml(client.nome)}" required /></div>
+            <div class="field"><label>Nome da empresa</label><input name="nome_empresa" value="${escapeHtml(client.nome_empresa || "")}" /></div>
             <div class="field"><label>Email</label><input name="email" type="email" value="${escapeHtml(client.email)}" required /></div>
             <div class="field"><label>Telefone</label><input name="telefone" value="${escapeHtml(client.telefone || "")}" required /></div>
             <div class="field"><label>Senha</label><input name="senha" type="password" placeholder="Preencha para alterar" /></div>
@@ -1735,6 +1738,7 @@ function renderModal() {
               <div><label>Data de publicação</label><input name="data_publicacao" type="date" value="${escapeHtml(item?.data_publicacao || getTodayIso())}" required /></div>
               <div><label>Status</label><select name="status">${[["publicado", "Publicado"], ["pendente", "Pendente"], ["rascunho", "Rascunho"]].map(([value, label]) => `<option value="${value}" ${item?.status === value ? "selected" : ""}>${label}</option>`).join("")}</select></div>
             </div>
+            <div class="field"><label>Link do Drive</label><input name="link_drive" type="url" value="${escapeHtml(item?.link_drive || "")}" placeholder="https://drive.google.com/..." /></div>
             <div class="field"><label>Cliente</label><select name="cliente_id" required>${clients.map((client) => `<option value="${client.id}" ${Number(item?.cliente_id || 0) === Number(client.id) ? "selected" : ""}>${escapeHtml(client.nome)}</option>`).join("")}</select></div>
             <div class="modal-actions">
               <button type="button" class="btn btn-outline" data-action="close-modal">Cancelar</button>
@@ -2398,6 +2402,7 @@ function normalizeClientUser(client) {
   return {
     ...client,
     nome: client.nome || client.name || "",
+    nome_empresa: client.nome_empresa || client.companyName || client.company || "",
     telefone: client.telefone || client.phone || "",
     tipo: client.tipo || "Cliente",
     initials: getInitials(client.nome || client.name || ""),
@@ -2784,12 +2789,17 @@ function renderContentTable(items, role) {
             <div><strong>${escapeHtml(item.titulo)}</strong><span>${escapeHtml(capitalize(item.tipo))}</span></div>
             <div><span>${escapeHtml(getClientNameById(item.cliente_id))}</span><small>${escapeHtml(item.data_publicacao || "-")}</small></div>
             <div><span class="status-pill ${String(item.status) === "publicado" ? "status-done" : "status-pending"}">${capitalize(item.status)}</span></div>
-            ${role === "admin" ? `<div class="row-actions"><button class="icon-action" data-action="edit-content" data-value="${item.id}">${icon("edit")}</button><button class="icon-action" data-action="delete-content" data-value="${item.id}">${icon("trash")}</button></div>` : ""}
+            <div class="row-actions">${renderDriveAction(item.link_drive)}${role === "admin" ? `<button class="icon-action" data-action="edit-content" data-value="${item.id}">${icon("edit")}</button><button class="icon-action" data-action="delete-content" data-value="${item.id}">${icon("trash")}</button>` : ""}</div>
           </article>
         `).join("") : `<div class="empty-notice">Nenhum conteúdo encontrado para este filtro.</div>`}
       </div>
     </div>
   `;
+}
+
+function renderDriveAction(value) {
+  const url = getSafeExternalUrl(value);
+  return url ? `<a class="icon-action" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="Abrir link do Drive">${icon("link")}</a>` : "";
 }
 
 function renderCampaignTable(items, role) {
@@ -3123,6 +3133,17 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
+function getSafeExternalUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    const url = new URL(raw);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
 function capitalize(value) {
   return String(value).charAt(0).toUpperCase() + String(value).slice(1);
 }
@@ -3318,6 +3339,7 @@ function icon(name) {
     message: `<svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.5 0-2.91-.39-4.13-1.07L3 20l1.2-5.07A8.5 8.5 0 1 1 21 11.5z"></path></svg>`,
     edit: `<svg viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`,
     trash: `<svg viewBox="0 0 24 24"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>`,
+    link: `<svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.07 0l2.12-2.12a5 5 0 0 0-7.07-7.07L11 4.93"></path><path d="M14 11a5 5 0 0 0-7.07 0L4.81 13.12a5 5 0 0 0 7.07 7.07L13 19.07"></path></svg>`,
     logout: `<svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><path d="M10 17l5-5-5-5"></path><path d="M15 12H3"></path></svg>`,
     download: `<svg viewBox="0 0 24 24"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>`,
   };

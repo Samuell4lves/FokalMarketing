@@ -1,6 +1,7 @@
 create table if not exists public.usuarios (
   id bigint primary key,
   nome text not null,
+  nome_empresa text not null default '',
   email text not null unique,
   senha text not null,
   telefone text not null default '',
@@ -38,6 +39,7 @@ create table if not exists public.conteudos (
   titulo text not null,
   tipo text not null,
   descricao text not null default '',
+  link_drive text not null default '',
   data_publicacao date not null,
   data_criacao date not null default current_date,
   status text not null default 'pendente',
@@ -77,6 +79,9 @@ alter table public.usuarios
   add column if not exists telefone text not null default '';
 
 alter table public.usuarios
+  add column if not exists nome_empresa text not null default '';
+
+alter table public.usuarios
   add column if not exists senha text not null default 'cliente123';
 
 alter table public.usuarios
@@ -114,6 +119,9 @@ alter table public.eventos
 
 alter table public.conteudos
   add column if not exists data_criacao date not null default current_date;
+
+alter table public.conteudos
+  add column if not exists link_drive text not null default '';
 
 alter table public.campanhas
   add column if not exists cliques integer not null default 0;

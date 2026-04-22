@@ -554,6 +554,7 @@ async function loginWithSupabase(response, body) {
       email: account.email,
       tipo: account.tipo,
       telefone: account.telefone || "",
+      nome_empresa: account.nome_empresa || "",
       planType: account.planType || "",
       token: createSessionToken(account),
     });
@@ -593,16 +594,40 @@ async function readUsersData({ includeSensitive = false } = {}) {
     "tipo",
     "telefone",
     "Telefone",
+    "nome_empresa",
     "plano_tipo",
     "plan_type",
     "tipo_plano",
     includeSensitive ? "senha" : null,
   ].filter(Boolean).join(", ");
 
-  const { data, error } = await getSupabaseClient()
+  const client = getSupabaseClient();
+  const { data, error } = await client
     .from("usuarios")
     .select(columns)
     .order("nome", { ascending: true });
+
+  if (isMissingUserCompanyColumnError(error)) {
+    const fallbackColumns = [
+      "id",
+      "nome",
+      "email",
+      "tipo",
+      "telefone",
+      "Telefone",
+      "plano_tipo",
+      "plan_type",
+      "tipo_plano",
+      includeSensitive ? "senha" : null,
+    ].filter(Boolean).join(", ");
+    const { data: fallbackData, error: fallbackError } = await client
+      .from("usuarios")
+      .select(fallbackColumns)
+      .order("nome", { ascending: true });
+    if (fallbackError) throw fallbackError;
+    const fallbackUsers = (fallbackData || []).map(normalizeUserRecord);
+    return includeSensitive ? fallbackUsers : fallbackUsers.map(stripSensitiveUserFields);
+  }
 
   if (error) throw error;
   const users = (data || []).map(normalizeUserRecord);
@@ -629,6 +654,7 @@ async function createUserAccount(response, body) {
     const payload = {
       id: user.id,
       nome: user.nome,
+      nome_empresa: user.nome_empresa,
       telefone: user.telefone,
       email: user.email,
       senha: user.senha,
@@ -638,10 +664,11 @@ async function createUserAccount(response, body) {
     const { data, error } = await getSupabaseClient()
       .from("usuarios")
       .insert(payload)
-      .select("id, nome, telefone, email, tipo, plano_tipo, plan_type, tipo_plano")
+      .select("id, nome, nome_empresa, telefone, email, tipo, plano_tipo, plan_type, tipo_plano")
       .single();
 
     if (error) {
+      if (isMissingUserCompanyColumnError(error)) return sendMissingUserCompanyColumnError(response);
       if (String(error.message || "").toLowerCase().includes("duplicate")) {
         return sendJson(response, 400, { error: "Ja existe um usuario com este email." });
       }
@@ -682,6 +709,7 @@ async function updateClientAccount(response, id, body) {
       .from("usuarios")
       .update({
         nome: updated.nome,
+        nome_empresa: updated.nome_empresa,
         telefone: updated.telefone,
         email: updated.email,
         senha: updated.senha,
@@ -689,9 +717,10 @@ async function updateClientAccount(response, id, body) {
         plano_tipo: updated.planType,
       })
       .eq("id", id)
-      .select("id, nome, telefone, email, tipo, plano_tipo, plan_type, tipo_plano")
+      .select("id, nome, nome_empresa, telefone, email, tipo, plano_tipo, plan_type, tipo_plano")
       .single();
 
+    if (isMissingUserCompanyColumnError(error)) return sendMissingUserCompanyColumnError(response);
     if (error) return sendJson(response, 500, { error: error.message });
     return sendJson(response, 200, stripSensitiveUserFields(normalizeUserRecord(data)));
   } catch (error) {
@@ -827,10 +856,19 @@ async function fetchSupabaseEvents({ users = [] } = {}) {
 }
 
 async function fetchSupabaseContents() {
-  const { data, error } = await getSupabaseClient()
+  const client = getSupabaseClient();
+  const { data, error } = await client
     .from("conteudos")
-    .select("id, titulo, tipo, descricao, data_publicacao, data_criacao, status, cliente_id")
+    .select("id, titulo, tipo, descricao, link_drive, data_publicacao, data_criacao, status, cliente_id")
     .order("data_publicacao", { ascending: false });
+  if (isMissingContentDriveColumnError(error)) {
+    const { data: fallbackData, error: fallbackError } = await client
+      .from("conteudos")
+      .select("id, titulo, tipo, descricao, data_publicacao, data_criacao, status, cliente_id")
+      .order("data_publicacao", { ascending: false });
+    if (fallbackError) throw fallbackError;
+    return (fallbackData || []).map(normalizeContentRecord);
+  }
   if (error) throw error;
   return (data || []).map(normalizeContentRecord);
 }
@@ -1250,11 +1288,36 @@ function normalizeContentRecord(payload) {
     titulo: String(payload.titulo || payload.title || "").trim(),
     tipo: String(payload.tipo || payload.type || "post").trim(),
     descricao: String(payload.descricao || payload.description || "").trim(),
+    link_drive: String(payload.link_drive || payload.driveLink || payload.linkDrive || "").trim(),
     data_publicacao: String(payload.data_publicacao || payload.publishDate || payload.date || "").trim(),
     data_criacao: String(payload.data_criacao || payload.createdAt || payload.data_publicacao || "").trim(),
     status: String(payload.status || "pendente").trim().toLowerCase(),
     cliente_id: Number(payload.cliente_id || payload.clientId || payload.clienteId || 0),
   };
+}
+
+function isMissingContentDriveColumnError(error) {
+  if (!error) return false;
+  const message = String(error.message || "");
+  return String(error.code || "") === "PGRST204" && message.includes("link_drive") && message.includes("conteudos");
+}
+
+function sendMissingContentDriveColumnError(response) {
+  return sendJson(response, 500, {
+    error: "A coluna link_drive ainda nao existe no Supabase. Rode a migration da tabela conteudos e tente salvar novamente.",
+  });
+}
+
+function isMissingUserCompanyColumnError(error) {
+  if (!error) return false;
+  const message = String(error.message || "");
+  return String(error.code || "") === "PGRST204" && message.includes("nome_empresa") && message.includes("usuarios");
+}
+
+function sendMissingUserCompanyColumnError(response) {
+  return sendJson(response, 500, {
+    error: "A coluna nome_empresa ainda nao existe no Supabase. Rode a migration da tabela usuarios e tente salvar novamente.",
+  });
 }
 
 function normalizeCampaignRecord(payload) {
@@ -1334,13 +1397,15 @@ async function createContentRecord(response, body) {
         titulo: record.titulo,
         tipo: record.tipo,
         descricao: record.descricao,
+        link_drive: record.link_drive,
         data_publicacao: record.data_publicacao,
         data_criacao: record.data_criacao || record.data_publicacao,
         status: record.status,
         cliente_id: record.cliente_id,
       })
-      .select("id, titulo, tipo, descricao, data_publicacao, data_criacao, status, cliente_id")
+      .select("id, titulo, tipo, descricao, link_drive, data_publicacao, data_criacao, status, cliente_id")
       .single();
+    if (isMissingContentDriveColumnError(error)) return sendMissingContentDriveColumnError(response);
     if (error) return sendJson(response, 500, { error: error.message });
     return sendJson(response, 201, normalizeContentRecord(data));
   } catch (error) {
@@ -1366,14 +1431,16 @@ async function updateContentRecord(response, id, body) {
         titulo: record.titulo,
         tipo: record.tipo,
         descricao: record.descricao,
+        link_drive: record.link_drive,
         data_publicacao: record.data_publicacao,
         data_criacao: record.data_criacao || record.data_publicacao,
         status: record.status,
         cliente_id: record.cliente_id,
       })
       .eq("id", id)
-      .select("id, titulo, tipo, descricao, data_publicacao, data_criacao, status, cliente_id")
+      .select("id, titulo, tipo, descricao, link_drive, data_publicacao, data_criacao, status, cliente_id")
       .single();
+    if (isMissingContentDriveColumnError(error)) return sendMissingContentDriveColumnError(response);
     if (error) return sendJson(response, 500, { error: error.message });
     return sendJson(response, 200, normalizeContentRecord(data));
   } catch (error) {
@@ -1535,6 +1602,7 @@ function normalizeUserRecord(payload) {
   return {
     id: Number(payload.id || Date.now()),
     nome: String(payload.nome || payload.name || "").trim(),
+    nome_empresa: String(payload.nome_empresa || payload.companyName || payload.company || "").trim(),
     email: String(payload.email || "").trim().toLowerCase(),
     senha: String(payload.senha || "").trim(),
     telefone: String(payload.telefone || payload.Telefone || payload.phone || "").trim(),
