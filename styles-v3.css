@@ -942,6 +942,12 @@ img {
   border-color: rgba(255, 255, 255, 0.18);
 }
 
+.nav-item.active:hover {
+  background: #ffffff;
+  color: var(--blue);
+  border-color: rgba(255, 255, 255, 0.72);
+}
+
 .sidebar-bottom {
   margin-top: auto;
   border-top: 1px solid rgba(255, 255, 255, 0.14);
