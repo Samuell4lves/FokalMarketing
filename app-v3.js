@@ -485,7 +485,7 @@ function renderClients() {
     const matchesPlan =
       state.ui.clientPlanFilter === "Todos" ||
       normalizePlanType(client.planType) === state.ui.clientPlanFilter;
-    const haystack = `${client.nome} ${client.nome_empresa || ""} ${client.email} ${client.telefone}`.toLowerCase();
+    const haystack = `${client.nome} ${client.nicho || ""} ${client.nome_empresa || ""} ${client.email} ${client.telefone}`.toLowerCase();
     const matchesSearch = !normalizedSearch || haystack.includes(normalizedSearch);
     return matchesPlan && matchesSearch;
   });
@@ -499,7 +499,7 @@ function renderClients() {
       <button class="btn btn-primary" data-action="new-client">${icon("plus")}Novo Cliente</button>
     </div>
     <div class="search-row">
-      <label class="search-box">${icon("search")}<input data-client-search type="text" placeholder="Buscar por nome, email ou telefone..." value="${escapeHtml(state.ui.clientSearch)}" /></label>
+      <label class="search-box">${icon("search")}<input data-client-search type="text" placeholder="Buscar por nome, nicho, empresa, email ou telefone..." value="${escapeHtml(state.ui.clientSearch)}" /></label>
       <button class="filter-box" data-action="toggle-filter">${icon("filter")}</button>
       <label class="filter-box filter-select">
         <select data-client-plan-filter>
@@ -1007,12 +1007,12 @@ function renderClientCard(client) {
           ${client.id ? `<button class="icon-action" data-action="edit-client" data-value="${client.id}">${icon("edit")}</button><button class="icon-action" data-action="delete-client" data-value="${client.id}">${icon("trash")}</button>` : ""}
         </div>
       </div>
-      <h3>${client.nome}</h3>
-      <p class="contact-role">${client.nome_empresa || client.tipo}</p>
+      <h3>${escapeHtml(client.nome)}</h3>
+      <p class="contact-role">${escapeHtml(client.nicho || "-")}</p>
       <div class="contact-info">
-        <div class="contact-line">${icon("mail")} ${client.email}</div>
-        <div class="contact-line">${icon("phone")} ${client.telefone || "-"}</div>
-        <div class="contact-line">${icon("building")} ${client.nome_empresa || "-"}</div>
+        <div class="contact-line">${icon("mail")} ${escapeHtml(client.email)}</div>
+        <div class="contact-line">${icon("phone")} ${escapeHtml(client.telefone || "-")}</div>
+        <div class="contact-line">${icon("building")} ${escapeHtml(client.nome_empresa || "-")}</div>
       </div>
       <div class="contact-footer"><span>Perfil de Acesso</span><strong>${client.tipo}</strong></div>
       <div class="contact-footer"><span>Tipo de Plano</span><strong>${normalizePlanType(client.planType)}</strong></div>
@@ -1435,6 +1435,7 @@ function renderModal() {
           </div>
           <form id="client-form" class="modal-form">
             <div class="field"><label>Nome</label><input name="nome" required /></div>
+            <div class="field"><label>Nicho</label><input name="nicho" placeholder="Ex.: Cirurgiao Dentista" required /></div>
             <div class="field"><label>Nome da empresa</label><input name="nome_empresa" /></div>
             <div class="field"><label>Email</label><input name="email" type="email" required /></div>
             <div class="field"><label>Telefone</label><input name="telefone" required /></div>
@@ -1494,6 +1495,7 @@ function renderModal() {
           <form id="edit-client-form" class="modal-form">
             <input type="hidden" name="id" value="${client.id}" />
             <div class="field"><label>Nome</label><input name="nome" value="${escapeHtml(client.nome)}" required /></div>
+            <div class="field"><label>Nicho</label><input name="nicho" value="${escapeHtml(client.nicho || "")}" placeholder="Ex.: Cirurgiao Dentista" required /></div>
             <div class="field"><label>Nome da empresa</label><input name="nome_empresa" value="${escapeHtml(client.nome_empresa || "")}" /></div>
             <div class="field"><label>Email</label><input name="email" type="email" value="${escapeHtml(client.email)}" required /></div>
             <div class="field"><label>Telefone</label><input name="telefone" value="${escapeHtml(client.telefone || "")}" required /></div>
@@ -2402,6 +2404,7 @@ function normalizeClientUser(client) {
   return {
     ...client,
     nome: client.nome || client.name || "",
+    nicho: client.nicho || client.segment || client.market || "",
     nome_empresa: client.nome_empresa || client.companyName || client.company || "",
     telefone: client.telefone || client.phone || "",
     tipo: client.tipo || "Cliente",

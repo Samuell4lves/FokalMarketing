@@ -554,6 +554,7 @@ async function loginWithSupabase(response, body) {
       email: account.email,
       tipo: account.tipo,
       telefone: account.telefone || "",
+      nicho: account.nicho || "",
       nome_empresa: account.nome_empresa || "",
       planType: account.planType || "",
       token: createSessionToken(account),
@@ -594,6 +595,7 @@ async function readUsersData({ includeSensitive = false } = {}) {
     "tipo",
     "telefone",
     "Telefone",
+    "nicho",
     "nome_empresa",
     "plano_tipo",
     "plan_type",
@@ -607,7 +609,7 @@ async function readUsersData({ includeSensitive = false } = {}) {
     .select(columns)
     .order("nome", { ascending: true });
 
-  if (isMissingUserCompanyColumnError(error)) {
+  if (isMissingUserProfileColumnError(error)) {
     const fallbackColumns = [
       "id",
       "nome",
@@ -636,8 +638,8 @@ async function readUsersData({ includeSensitive = false } = {}) {
 
 async function createUserAccount(response, body) {
   const user = normalizeUserRecord({ id: Date.now(), ...body });
-  if (!user.nome || !user.telefone || !user.email || !user.senha || !user.tipo) {
-    return sendJson(response, 400, { error: "Nome, telefone, email, senha e perfil de acesso sao obrigatorios." });
+  if (!user.nome || !user.telefone || !user.email || !user.senha || !user.tipo || (isClientUser(user) && !user.nicho)) {
+    return sendJson(response, 400, { error: "Nome, nicho, telefone, email, senha e perfil de acesso sao obrigatorios para clientes." });
   }
 
   try {
@@ -654,6 +656,7 @@ async function createUserAccount(response, body) {
     const payload = {
       id: user.id,
       nome: user.nome,
+      nicho: user.nicho,
       nome_empresa: user.nome_empresa,
       telefone: user.telefone,
       email: user.email,
@@ -664,11 +667,11 @@ async function createUserAccount(response, body) {
     const { data, error } = await getSupabaseClient()
       .from("usuarios")
       .insert(payload)
-      .select("id, nome, nome_empresa, telefone, email, tipo, plano_tipo, plan_type, tipo_plano")
+      .select("id, nome, nicho, nome_empresa, telefone, email, tipo, plano_tipo, plan_type, tipo_plano")
       .single();
 
     if (error) {
-      if (isMissingUserCompanyColumnError(error)) return sendMissingUserCompanyColumnError(response);
+      if (isMissingUserProfileColumnError(error)) return sendMissingUserProfileColumnError(response);
       if (String(error.message || "").toLowerCase().includes("duplicate")) {
         return sendJson(response, 400, { error: "Ja existe um usuario com este email." });
       }
@@ -709,6 +712,7 @@ async function updateClientAccount(response, id, body) {
       .from("usuarios")
       .update({
         nome: updated.nome,
+        nicho: updated.nicho,
         nome_empresa: updated.nome_empresa,
         telefone: updated.telefone,
         email: updated.email,
@@ -717,10 +721,10 @@ async function updateClientAccount(response, id, body) {
         plano_tipo: updated.planType,
       })
       .eq("id", id)
-      .select("id, nome, nome_empresa, telefone, email, tipo, plano_tipo, plan_type, tipo_plano")
+      .select("id, nome, nicho, nome_empresa, telefone, email, tipo, plano_tipo, plan_type, tipo_plano")
       .single();
 
-    if (isMissingUserCompanyColumnError(error)) return sendMissingUserCompanyColumnError(response);
+    if (isMissingUserProfileColumnError(error)) return sendMissingUserProfileColumnError(response);
     if (error) return sendJson(response, 500, { error: error.message });
     return sendJson(response, 200, stripSensitiveUserFields(normalizeUserRecord(data)));
   } catch (error) {
@@ -1308,15 +1312,15 @@ function sendMissingContentDriveColumnError(response) {
   });
 }
 
-function isMissingUserCompanyColumnError(error) {
+function isMissingUserProfileColumnError(error) {
   if (!error) return false;
   const message = String(error.message || "");
-  return String(error.code || "") === "PGRST204" && message.includes("nome_empresa") && message.includes("usuarios");
+  return String(error.code || "") === "PGRST204" && message.includes("usuarios") && (message.includes("nome_empresa") || message.includes("nicho"));
 }
 
-function sendMissingUserCompanyColumnError(response) {
+function sendMissingUserProfileColumnError(response) {
   return sendJson(response, 500, {
-    error: "A coluna nome_empresa ainda nao existe no Supabase. Rode a migration da tabela usuarios e tente salvar novamente.",
+    error: "As colunas de perfil do cliente ainda nao existem no Supabase. Rode a migration da tabela usuarios e tente salvar novamente.",
   });
 }
 
@@ -1602,6 +1606,7 @@ function normalizeUserRecord(payload) {
   return {
     id: Number(payload.id || Date.now()),
     nome: String(payload.nome || payload.name || "").trim(),
+    nicho: String(payload.nicho || payload.segment || payload.market || "").trim(),
     nome_empresa: String(payload.nome_empresa || payload.companyName || payload.company || "").trim(),
     email: String(payload.email || "").trim().toLowerCase(),
     senha: String(payload.senha || "").trim(),

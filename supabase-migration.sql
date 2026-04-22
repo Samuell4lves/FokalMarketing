@@ -1,6 +1,7 @@
 create table if not exists public.usuarios (
   id bigint primary key,
   nome text not null,
+  nicho text not null default '',
   nome_empresa text not null default '',
   email text not null unique,
   senha text not null,
@@ -77,6 +78,9 @@ create index if not exists idx_campanhas_cliente_periodo on public.campanhas(cli
 
 alter table public.usuarios
   add column if not exists telefone text not null default '';
+
+alter table public.usuarios
+  add column if not exists nicho text not null default '';
 
 alter table public.usuarios
   add column if not exists nome_empresa text not null default '';
