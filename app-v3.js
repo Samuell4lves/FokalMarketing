@@ -219,15 +219,13 @@ function renderRoute() {
 
   if (path.startsWith("/admin")) {
     if (!requireRole("admin")) return;
-    app.innerHTML = `${renderAdminRoute(path)}${renderModal()}${renderHelpFab()}`;
-    bindModalForms();
+    renderAuthenticatedRoute("admin", renderAdminContent(path), "/assets/icon-white-custom.png", "FOKAL", "Admin");
     return;
   }
 
   if (path.startsWith("/cliente")) {
     if (!requireRole("cliente")) return;
-    app.innerHTML = `${renderClientRoute(path)}${renderModal()}${renderHelpFab()}`;
-    bindModalForms();
+    renderAuthenticatedRoute("cliente", renderClientContent(path), "/assets/icon-white-custom.png", "FOKAL", "Portal do Cliente");
     return;
   }
 
@@ -381,6 +379,10 @@ function bindLoginForm(role) {
 }
 
 function renderAdminRoute(path) {
+  return renderShell("admin", renderAdminContent(path), "/assets/icon-white-custom.png", "FOKAL", "Admin");
+}
+
+function renderAdminContent(path) {
   let content = "";
   if (path === "/admin/dashboard") content = renderAdminDashboard();
   else if (path === "/admin/financeiro") content = renderFinancePage();
@@ -389,15 +391,54 @@ function renderAdminRoute(path) {
   else if (path === "/admin/relatorios") content = renderReports("admin");
   else if (path === "/admin/ajustes") content = renderSettings();
   else content = renderNotFoundInner();
-  return renderShell("admin", content, "/assets/icon-white-custom.png", "FOKAL", "Admin");
+  return content;
 }
 
 function renderClientRoute(path) {
+  return renderShell("cliente", renderClientContent(path), "/assets/icon-white-custom.png", "FOKAL", "Portal do Cliente");
+}
+
+function renderClientContent(path) {
   let content = "";
   if (path === "/cliente" || path === "/cliente/calendario") content = renderClientCalendar();
   else if (path === "/cliente/relatorios") content = renderReports("cliente");
   else content = renderNotFoundInner();
-  return renderShell("cliente", content, "/assets/icon-white-custom.png", "FOKAL", "Portal do Cliente");
+  return content;
+}
+
+function renderAuthenticatedRoute(role, content, logo, title, subtitle) {
+  const shell = app.querySelector(".app-layout");
+  if (shell?.dataset.shellRole === role) {
+    const contentNode = shell.querySelector(".content");
+    if (contentNode && contentNode.innerHTML !== content) contentNode.innerHTML = content;
+    syncActiveNavigation();
+    renderDynamicChrome();
+    bindModalForms();
+    return;
+  }
+
+  app.innerHTML = `${renderShell(role, content, logo, title, subtitle)}<div id="modal-root">${renderModal()}</div>${renderHelpFab()}`;
+  bindModalForms();
+}
+
+function renderDynamicChrome() {
+  let modalRoot = document.querySelector("#modal-root");
+  if (!modalRoot) {
+    app.insertAdjacentHTML("beforeend", `<div id="modal-root"></div>`);
+    modalRoot = document.querySelector("#modal-root");
+  }
+  modalRoot.innerHTML = renderModal();
+
+  if (!document.querySelector(".help-fab")) {
+    app.insertAdjacentHTML("beforeend", renderHelpFab());
+  }
+}
+
+function syncActiveNavigation() {
+  const activePath = window.location.pathname;
+  document.querySelectorAll(".nav-item").forEach((item) => {
+    item.classList.toggle("active", item.getAttribute("href") === activePath);
+  });
 }
 
 function renderShell(role, content, logo, title, subtitle) {
@@ -413,7 +454,7 @@ function renderShell(role, content, logo, title, subtitle) {
   };
   const user = state.session && state.session.role === role ? state.session : fallbackUser;
   return `
-    <section class="screen app-layout">
+    <section class="screen app-layout" data-shell-role="${role}">
       <aside class="sidebar">
         <div class="sidebar-brand">
           ${logo ? `<img src="${logo}" alt="Fokal" />` : `<span class="sidebar-brand-fallback">${icon("grid")}</span>`}

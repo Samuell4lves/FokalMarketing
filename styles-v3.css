@@ -95,6 +95,10 @@ img {
   min-height: 100vh;
 }
 
+.app-layout {
+  animation: none;
+}
+
 .login-brand {
   min-height: 100vh;
   padding: 34px 46px 28px;
