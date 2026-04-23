@@ -12,6 +12,8 @@ const state = {
     clientVisibleMonth: getMonthStartIso(new Date()),
     adminSelectedDate: getTodayIso(),
     clientSelectedDate: getTodayIso(),
+    adminCalendarView: "month",
+    clientCalendarView: "month",
     adminClientFilter: "all",
     financeMonthFilter: String(new Date().getMonth()),
     financeYearFilter: String(new Date().getFullYear()),
@@ -998,6 +1000,89 @@ function renderClientCalendar() {
   `;
 }
 
+function renderAdminCalendar() {
+  const visibleMonth = parseIsoDate(state.ui.adminVisibleMonth);
+  const selectedDate = state.ui.adminSelectedDate;
+  const activeView = state.ui.adminCalendarView || "month";
+  const clients = getClientUsers();
+  const filteredTasks = getTasksForCalendar("admin");
+  const dayTasks = getTasksForDate(filteredTasks, selectedDate);
+
+  return `
+    <div class="page-head calendar-page-title">
+      <h1>Calendário</h1>
+      <p>Gerencie seus eventos e compromissos</p>
+    </div>
+    <section class="calendar-shell">
+      <div class="calendar-topbar">
+        <div class="calendar-nav">
+          <button class="calendar-icon-btn" data-action="calendar-prev" data-value="admin" aria-label="Anterior">${icon("chevronLeft")}</button>
+          <div class="month-title">${getCalendarRangeTitle(activeView, selectedDate, visibleMonth)}</div>
+          <button class="calendar-icon-btn" data-action="calendar-next" data-value="admin" aria-label="Próximo">${icon("chevronRight")}</button>
+          <button class="calendar-today" data-action="calendar-today" data-value="admin">Hoje</button>
+        </div>
+        <div class="calendar-toolbar">
+          <label class="filter-box filter-select calendar-filter">
+            <select data-calendar-filter="admin-client">
+              <option value="all">Todos os clientes</option>
+              ${clients.map((client) => `<option value="${client.id}" ${String(state.ui.adminClientFilter) === String(client.id) ? "selected" : ""}>${escapeHtml(client.nome)}</option>`).join("")}
+            </select>
+            ${icon("chevronDown")}
+          </label>
+          <div class="calendar-view-toggle" role="group" aria-label="Visualização do calendário">
+            ${renderCalendarViewButtons("admin", activeView)}
+          </div>
+        </div>
+      </div>
+      <div class="calendar-board ${activeView === "day" ? "is-day-view" : ""}">
+        ${renderCalendarMainView("admin", activeView, visibleMonth, filteredTasks, selectedDate)}
+        ${activeView === "day" ? renderCalendarSidePanel("admin", selectedDate, dayTasks, true) : ""}
+      </div>
+      <div class="calendar-footer">
+        ${renderEventCategoryLegend()}
+        <button class="btn btn-primary btn-small" data-action="new-calendar-event" data-value="admin">${icon("plus")}Novo evento</button>
+      </div>
+    </section>
+  `;
+}
+
+function renderClientCalendar() {
+  const visibleMonth = parseIsoDate(state.ui.clientVisibleMonth);
+  const selectedDate = state.ui.clientSelectedDate;
+  const activeView = state.ui.clientCalendarView || "month";
+  const visibleTasks = getTasksForCalendar("cliente");
+  const dayTasks = getTasksForDate(visibleTasks, selectedDate);
+
+  return `
+    <div class="page-head calendar-page-title">
+      <h1>Calendário</h1>
+      <p>Gerencie seus eventos e compromissos</p>
+    </div>
+    <section class="calendar-shell">
+      <div class="calendar-topbar">
+        <div class="calendar-nav">
+          <button class="calendar-icon-btn" data-action="calendar-prev" data-value="cliente" aria-label="Anterior">${icon("chevronLeft")}</button>
+          <div class="month-title">${getCalendarRangeTitle(activeView, selectedDate, visibleMonth)}</div>
+          <button class="calendar-icon-btn" data-action="calendar-next" data-value="cliente" aria-label="Próximo">${icon("chevronRight")}</button>
+          <button class="calendar-today" data-action="calendar-today" data-value="cliente">Hoje</button>
+        </div>
+        <div class="calendar-toolbar">
+          <div class="calendar-view-toggle" role="group" aria-label="Visualização do calendário">
+            ${renderCalendarViewButtons("cliente", activeView)}
+          </div>
+        </div>
+      </div>
+      <div class="calendar-board ${activeView === "day" ? "is-day-view" : ""}">
+        ${renderCalendarMainView("cliente", activeView, visibleMonth, visibleTasks, selectedDate)}
+        ${activeView === "day" ? renderCalendarSidePanel("cliente", selectedDate, dayTasks, false) : ""}
+      </div>
+      <div class="calendar-footer">
+        ${renderEventCategoryLegend()}
+      </div>
+    </section>
+  `;
+}
+
 function renderClientCard(client) {
   return `
     <article class="contact-card">
@@ -1147,6 +1232,193 @@ function renderSupportPanel() {
       <p>Entre em contato com nosso time</p>
       <button class="btn btn-primary btn-small">Falar com Suporte</button>
     </div>
+  `;
+}
+
+function renderCalendarViewButtons(mode, activeView) {
+  return [
+    ["month", "Mês"],
+    ["week", "Semana"],
+    ["day", "Dia"],
+  ].map(([view, label]) => `<button class="${activeView === view ? "active" : ""}" data-action="calendar-view" data-value="${mode}|${view}">${label}</button>`).join("");
+}
+
+function renderCalendarMainView(mode, activeView, visibleMonth, tasks, selectedDate) {
+  if (activeView === "week") return renderCalendarWeekView(mode, tasks, selectedDate);
+  if (activeView === "day") return renderCalendarDayView(tasks, selectedDate);
+  return `
+    ${renderCalendarMonthGrid(mode, visibleMonth, tasks, selectedDate)}
+    ${renderCalendarMobileDaySummary(mode, selectedDate, getTasksForDate(tasks, selectedDate), mode === "admin")}
+  `;
+}
+
+function renderCalendarMonthGrid(mode, visibleMonth, tasks, selectedDate) {
+  const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const cells = getCalendarCells(visibleMonth);
+  return `
+    <div class="calendar-month-grid">
+      ${days.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}
+      ${cells
+        .map((cell) => {
+          if (!cell.inMonth) return `<div class="calendar-month-cell is-muted" aria-hidden="true"></div>`;
+          const isoDate = toIsoDate(cell.date);
+          const dayTasks = getTasksForDate(tasks, isoDate);
+          const classes = [
+            "calendar-month-cell",
+            isSameDateIso(isoDate, selectedDate) ? "is-selected" : "",
+            isoDate === getTodayIso() ? "is-today" : "",
+          ].filter(Boolean).join(" ");
+          return `
+            <div class="${classes}" data-calendar-role="${mode}" data-date="${isoDate}" role="button" tabindex="0">
+              <span class="calendar-day-number">${cell.date.getDate()}</span>
+              ${renderCalendarCellEvents(dayTasks, mode)}
+            </div>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+}
+
+function renderCalendarWeekView(mode, tasks, selectedDate) {
+  const weekDays = getWeekDates(selectedDate);
+  return `
+    <div class="calendar-time-grid is-week">
+      <div class="calendar-time-corner"></div>
+      ${weekDays.map((date) => `
+        <button class="calendar-time-day ${toIsoDate(date) === selectedDate ? "is-selected" : ""}" data-calendar-role="${mode}" data-date="${toIsoDate(date)}">
+          <span>${formatWeekdayShort(date)}</span>
+          <strong>${date.getDate()}</strong>
+        </button>
+      `).join("")}
+      ${renderCalendarTimeRows(tasks, weekDays, mode)}
+    </div>
+    ${renderCalendarWeekList(mode, tasks, weekDays, selectedDate)}
+  `;
+}
+
+function renderCalendarWeekList(mode, tasks, weekDays, selectedDate) {
+  return `
+    <div class="calendar-week-list">
+      ${weekDays.map((date) => {
+        const isoDate = toIsoDate(date);
+        const dayTasks = getTasksForDate(tasks, isoDate);
+        const relativeLabel = getRelativeDayLabel(isoDate);
+        return `
+          <section class="calendar-week-list-day ${isoDate === selectedDate ? "is-selected" : ""}">
+            <div class="calendar-week-group-label">${relativeLabel}</div>
+            <button class="calendar-week-list-head" data-calendar-role="${mode}" data-date="${isoDate}">
+              <span>${formatWeekdayShort(date)}</span>
+              <strong>${date.getDate()}</strong>
+              <small>${dayTasks.length ? `${dayTasks.length} evento(s)` : "Livre"}</small>
+            </button>
+            ${dayTasks.length
+              ? `<div class="calendar-week-list-events">${dayTasks.map((event) => renderCalendarDetailEvent(event, mode === "admin")).join("")}</div>`
+              : `<div class="calendar-week-empty">Nenhum evento agendado</div>`}
+          </section>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderCalendarDayView(tasks, selectedDate) {
+  const selected = parseIsoDate(selectedDate);
+  return `
+    <div class="calendar-time-grid is-day">
+      <div class="calendar-time-corner"></div>
+      <div class="calendar-time-day is-selected">
+        <span>${formatWeekdayShort(selected)}</span>
+        <strong>${selected.getDate()}</strong>
+      </div>
+      ${renderCalendarTimeRows(tasks, [selected], "day")}
+    </div>
+  `;
+}
+
+function renderCalendarTimeRows(tasks, dates, mode) {
+  return buildCalendarHours().map((hour) => `
+    <div class="calendar-hour-label">${String(hour).padStart(2, "0")}:00</div>
+    ${dates.map((date) => {
+      const isoDate = toIsoDate(date);
+      const hourTasks = getTasksForDate(tasks, isoDate).filter((task) => getTaskHour(task) === hour);
+      return `
+        <div class="calendar-hour-cell" ${mode !== "day" ? `data-calendar-role="${mode}" data-date="${isoDate}"` : ""}>
+          ${hourTasks.map((event) => renderCalendarInlineEvent(event, mode === "admin")).join("")}
+        </div>
+      `;
+    }).join("")}
+  `).join("");
+}
+
+function renderCalendarCellEvents(dayTasks, mode) {
+  if (!dayTasks.length) return "";
+  const visible = dayTasks.slice(0, 3);
+  const overflow = dayTasks.length - visible.length;
+  return `
+    <div class="calendar-cell-events">
+      ${visible.map((event) => renderCalendarInlineEvent(event, mode === "admin")).join("")}
+      ${overflow > 0 ? `<span class="calendar-more">+${overflow}</span>` : ""}
+    </div>
+  `;
+}
+
+function renderCalendarInlineEvent(event, canEdit = false) {
+  return `
+    <article class="calendar-inline-event ${taskToneClass(event.type)}">
+      <span>${escapeHtml(event.time || "")}</span>
+      <strong>${escapeHtml(event.title || "Evento")}</strong>
+      ${event.clientName ? `<small>${escapeHtml(event.clientName)}</small>` : ""}
+      ${canEdit && event.id ? `<div class="event-actions"><button data-action="edit-admin-event" data-value="${event.id}" aria-label="Editar">${icon("edit")}</button><button data-action="delete-admin-event" data-value="${event.id}" aria-label="Excluir">${icon("trash")}</button></div>` : ""}
+    </article>
+  `;
+}
+
+function renderCalendarSidePanel(mode, selectedDate, dayTasks, canEdit = false) {
+  return `
+    <aside class="calendar-day-panel">
+      <h2>Eventos de ${formatDayMonth(selectedDate)}</h2>
+      ${dayTasks.length
+        ? `<div class="event-stack">${dayTasks.map((event) => renderCalendarDetailEvent(event, canEdit)).join("")}</div>`
+        : `<div class="empty-notice">Nenhum evento agendado</div>`}
+      ${mode === "admin" ? `<button class="btn btn-primary btn-small" data-action="new-calendar-event" data-value="admin">${icon("plus")}Novo evento</button>` : ""}
+    </aside>
+  `;
+}
+
+function renderCalendarMobileDaySummary(mode, selectedDate, dayTasks, canEdit = false) {
+  return `
+    <section class="calendar-mobile-day-summary">
+      <div class="calendar-mobile-day-head">
+        <div>
+          <span>${formatWeekdayShort(parseIsoDate(selectedDate))}</span>
+          <h3>Eventos de ${formatDayMonth(selectedDate)}</h3>
+        </div>
+        <strong>${dayTasks.length}</strong>
+      </div>
+      ${dayTasks.length
+        ? `<div class="event-stack">${dayTasks.map((event) => renderCalendarDetailEvent(event, canEdit)).join("")}</div>`
+        : `<div class="empty-notice">Nenhum evento agendado</div>`}
+      ${mode === "admin" ? `<button class="btn btn-primary btn-small" data-action="new-calendar-event" data-value="admin">${icon("plus")}Novo evento</button>` : ""}
+    </section>
+  `;
+}
+
+function renderCalendarDetailEvent(event, canEdit = false) {
+  return `
+    <article class="event-card ${taskToneClass(event.type)}">
+      <div class="row-between">
+        <div>
+          <span class="event-type-badge ${taskToneClass(event.type)}">${eventCategoryLabel(event.type)}</span>
+          <h4>${escapeHtml(event.title || "Evento")}</h4>
+        </div>
+        ${canEdit && event.id ? `<div class="event-actions"><button data-action="edit-admin-event" data-value="${event.id}" aria-label="Editar">${icon("edit")}</button><button data-action="delete-admin-event" data-value="${event.id}" aria-label="Excluir">${icon("trash")}</button></div>` : ""}
+      </div>
+      <div class="calendar-event-meta">${icon("clock")}${escapeHtml(event.time || "")}</div>
+      ${event.clientName ? `<div class="calendar-event-meta">${icon("user")}${escapeHtml(event.clientName)}</div>` : ""}
+      ${event.isRecurring ? `<div class="calendar-event-meta">${icon("calendar")}${escapeHtml(event.recurrenceLabel || "Recorrente")}</div>` : ""}
+      ${event.description ? `<div class="calendar-event-meta">${icon("message")}${escapeHtml(event.description)}</div>` : ""}
+    </article>
   `;
 }
 
@@ -2078,10 +2350,28 @@ function handleTab(group, value) {
   renderRoute();
 }
 
+function scrollCalendarMobileDaySummary(role) {
+  const view = role === "admin" ? state.ui.adminCalendarView : state.ui.clientCalendarView;
+  if (view !== "month" || !window.matchMedia("(max-width: 760px)").matches) return;
+  window.requestAnimationFrame(() => {
+    document.querySelector(".calendar-mobile-day-summary")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  });
+}
+
 function handleCalendarDay(role, date) {
-  if (role === "admin") state.ui.adminSelectedDate = date;
-  if (role === "cliente") state.ui.clientSelectedDate = date;
+  if (role === "admin") {
+    state.ui.adminSelectedDate = date;
+    state.ui.adminVisibleMonth = getMonthStartIso(parseIsoDate(date));
+  }
+  if (role === "cliente") {
+    state.ui.clientSelectedDate = date;
+    state.ui.clientVisibleMonth = getMonthStartIso(parseIsoDate(date));
+  }
   renderRoute();
+  scrollCalendarMobileDaySummary(role);
 }
 
 function handleAction(action, value) {
@@ -2164,6 +2454,24 @@ function handleAction(action, value) {
     state.ui.modal = { type: value === "admin" ? "admin-event" : "client-event" };
     return renderRoute();
   }
+  if (action === "calendar-view") {
+    const [role, view] = value.split("|");
+    if (role === "admin") state.ui.adminCalendarView = view;
+    if (role === "cliente") state.ui.clientCalendarView = view;
+    return renderRoute();
+  }
+  if (action === "calendar-today") {
+    const today = getTodayIso();
+    if (value === "admin") {
+      state.ui.adminSelectedDate = today;
+      state.ui.adminVisibleMonth = getMonthStartIso(parseIsoDate(today));
+    }
+    if (value === "cliente") {
+      state.ui.clientSelectedDate = today;
+      state.ui.clientVisibleMonth = getMonthStartIso(parseIsoDate(today));
+    }
+    return renderRoute();
+  }
   if (action === "edit-admin-event") {
     state.ui.modal = { type: "edit-admin-event", id: String(value) };
     return renderRoute();
@@ -2205,8 +2513,17 @@ function handleAction(action, value) {
   if (action === "calendar-prev" || action === "calendar-next") {
     const key = value === "admin" ? "adminVisibleMonth" : "clientVisibleMonth";
     const selectedKey = value === "admin" ? "adminSelectedDate" : "clientSelectedDate";
-    state.ui[key] = getMonthStartIso(addMonths(parseIsoDate(state.ui[key]), action === "calendar-prev" ? -1 : 1));
-    state.ui[selectedKey] = state.ui[key];
+    const viewKey = value === "admin" ? "adminCalendarView" : "clientCalendarView";
+    const direction = action === "calendar-prev" ? -1 : 1;
+    const currentDate = parseIsoDate(state.ui[selectedKey]);
+    const activeView = state.ui[viewKey] || "month";
+    const nextDate = activeView === "week"
+      ? addDays(currentDate, direction * 7)
+      : activeView === "day"
+        ? addDays(currentDate, direction)
+        : addMonths(parseIsoDate(state.ui[key]), direction);
+    state.ui[selectedKey] = toIsoDate(nextDate);
+    state.ui[key] = getMonthStartIso(nextDate);
     return renderRoute();
   }
   if (action === "reports-filter") {
@@ -3045,12 +3362,58 @@ function addMonths(date, delta) {
   return new Date(date.getFullYear(), date.getMonth() + delta, 1);
 }
 
+function addDays(date, delta) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + delta);
+  return next;
+}
+
 function formatMonthYear(date) {
   return new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(date);
 }
 
 function formatFullDate(isoDate) {
   return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long", year: "numeric" }).format(parseIsoDate(isoDate));
+}
+
+function formatDayMonth(isoDate) {
+  return new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "long" }).format(parseIsoDate(isoDate));
+}
+
+function formatWeekdayShort(date) {
+  return new Intl.DateTimeFormat("pt-BR", { weekday: "short" }).format(date).replace(".", "");
+}
+
+function getRelativeDayLabel(isoDate) {
+  const date = parseIsoDate(isoDate);
+  const today = parseIsoDate(getTodayIso());
+  const diff = Math.round((date - today) / 86400000);
+  if (diff === -1) return "Ontem";
+  if (diff === 0) return "Hoje";
+  if (diff === 1) return "Amanhã";
+  if (diff > 1 && diff <= 6) return new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(date);
+  return formatDayMonth(isoDate);
+}
+
+function getWeekDates(isoDate) {
+  const selected = parseIsoDate(isoDate);
+  const start = addDays(selected, -selected.getDay());
+  return Array.from({ length: 7 }, (_, index) => addDays(start, index));
+}
+
+function getCalendarRangeTitle(view, selectedDate, visibleMonth) {
+  if (view === "day") return formatFullDate(selectedDate);
+  if (view === "week") return `Semana de ${formatDayMonth(selectedDate)}`;
+  return formatMonthYear(visibleMonth);
+}
+
+function buildCalendarHours() {
+  return Array.from({ length: 17 }, (_, index) => index + 6);
+}
+
+function getTaskHour(task) {
+  const hour = Number(String(task.time || "00:00").split(":")[0]);
+  return Number.isFinite(hour) ? hour : 0;
 }
 
 function formatMonthYearShort(isoDate) {
