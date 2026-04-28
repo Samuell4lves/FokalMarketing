@@ -2905,9 +2905,12 @@ svg.fill {
 }
 
 .calendar-more {
+  display: inline-flex;
+  align-items: center;
   color: var(--blue);
   font-size: 12px;
   font-weight: 800;
+  cursor: pointer;
 }
 
 .calendar-time-grid {
@@ -2984,9 +2987,71 @@ svg.fill {
   font-size: 22px;
 }
 
-.calendar-week-list,
-.calendar-mobile-day-summary {
+.calendar-week-list {
   display: none;
+}
+
+.calendar-selected-day-summary {
+  display: grid;
+  gap: 16px;
+  padding: 28px 30px 32px;
+  border-top: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.calendar-selected-day-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.calendar-selected-day-head span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.calendar-selected-day-head h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.calendar-selected-day-head small {
+  display: block;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.calendar-selected-day-head strong {
+  min-width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: var(--blue);
+  font-size: 18px;
+}
+
+.calendar-selected-day-summary .event-stack {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.calendar-selected-day-summary .empty-notice {
+  min-height: 160px;
+  border: 1px dashed #dbe3ef;
+  border-radius: 12px;
+  background: #fbfdff;
 }
 
 @keyframes calendarViewIn {
@@ -3462,22 +3527,19 @@ svg.fill {
     padding: 24px 18px;
   }
 
-  .calendar-mobile-day-summary {
-    display: grid;
+  .calendar-selected-day-summary {
     gap: 12px;
     padding: 16px 14px 18px;
-    border-top: 1px solid var(--line);
-    background: #ffffff;
   }
 
-  .calendar-mobile-day-head {
+  .calendar-selected-day-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
   }
 
-  .calendar-mobile-day-head span {
+  .calendar-selected-day-head span {
     display: block;
     margin-bottom: 3px;
     color: var(--blue);
@@ -3486,12 +3548,16 @@ svg.fill {
     text-transform: uppercase;
   }
 
-  .calendar-mobile-day-head h3 {
+  .calendar-selected-day-head h3 {
     margin: 0;
     font-size: 17px;
   }
 
-  .calendar-mobile-day-head strong {
+  .calendar-selected-day-head small {
+    font-size: 12px;
+  }
+
+  .calendar-selected-day-head strong {
     width: 34px;
     height: 34px;
     display: grid;
@@ -3501,17 +3567,21 @@ svg.fill {
     color: var(--blue);
   }
 
-  .calendar-mobile-day-summary .empty-notice {
+  .calendar-selected-day-summary .empty-notice {
     min-height: 76px;
     border: 1px dashed #dbe3ef;
     border-radius: 10px;
     background: #fbfdff;
   }
 
-  .calendar-mobile-day-summary .event-card,
+  .calendar-selected-day-summary .event-card,
   .calendar-week-list .event-card {
     padding: 14px;
     border-radius: 10px;
+  }
+
+  .calendar-selected-day-summary .event-stack {
+    grid-template-columns: 1fr;
   }
 
   .calendar-week-list {

@@ -1094,7 +1094,6 @@ function renderAdminCalendar() {
       ${renderCalendarInsights(insights)}
       <div class="calendar-board ${activeView === "day" ? "is-day-view" : ""}">
         ${renderCalendarMainView("admin", activeView, visibleMonth, filteredTasks, selectedDate)}
-        ${activeView === "day" ? renderCalendarSidePanel("admin", selectedDate, dayTasks, true) : ""}
       </div>
       <div class="calendar-footer">
         ${renderEventCategoryLegend()}
@@ -1137,7 +1136,6 @@ function renderClientCalendar() {
       ${renderCalendarInsights(insights)}
       <div class="calendar-board ${activeView === "day" ? "is-day-view" : ""}">
         ${renderCalendarMainView("cliente", activeView, visibleMonth, visibleTasks, selectedDate)}
-        ${activeView === "day" ? renderCalendarSidePanel("cliente", selectedDate, dayTasks, false) : ""}
       </div>
       <div class="calendar-footer">
         ${renderEventCategoryLegend()}
@@ -1326,12 +1324,10 @@ function renderCalendarInsights(insights) {
 }
 
 function renderCalendarMainView(mode, activeView, visibleMonth, tasks, selectedDate) {
-  if (activeView === "week") return renderCalendarWeekView(mode, tasks, selectedDate);
-  if (activeView === "day") return renderCalendarDayView(mode, tasks, selectedDate);
-  return `
-    ${renderCalendarMonthGrid(mode, visibleMonth, tasks, selectedDate)}
-    ${renderCalendarMobileDaySummary(mode, selectedDate, getTasksForDate(tasks, selectedDate), mode === "admin")}
-  `;
+  const selectedSummary = renderCalendarSelectedDaySummary(mode, selectedDate, getTasksForDate(tasks, selectedDate), mode === "admin");
+  if (activeView === "week") return `${renderCalendarWeekView(mode, tasks, selectedDate)}${selectedSummary}`;
+  if (activeView === "day") return `${renderCalendarDayView(mode, tasks, selectedDate)}${selectedSummary}`;
+  return `${renderCalendarMonthGrid(mode, visibleMonth, tasks, selectedDate)}${selectedSummary}`;
 }
 
 function renderCalendarMonthGrid(mode, visibleMonth, tasks, selectedDate) {
@@ -1462,7 +1458,7 @@ function renderCalendarCellEvents(dayTasks, mode) {
   return `
     <div class="calendar-cell-events">
       ${visible.map((event) => renderCalendarInlineEvent(event, mode === "admin")).join("")}
-      ${overflow > 0 ? `<span class="calendar-more">+${overflow}</span>` : ""}
+      ${overflow > 0 ? `<span class="calendar-more" title="Clique no dia para ver todos os eventos">Ver +${overflow}</span>` : ""}
     </div>
   `;
 }
@@ -1495,13 +1491,14 @@ function renderCalendarSidePanel(mode, selectedDate, dayTasks, canEdit = false) 
   `;
 }
 
-function renderCalendarMobileDaySummary(mode, selectedDate, dayTasks, canEdit = false) {
+function renderCalendarSelectedDaySummary(mode, selectedDate, dayTasks, canEdit = false) {
   return `
-    <section class="calendar-mobile-day-summary">
-      <div class="calendar-mobile-day-head">
+    <section class="calendar-selected-day-summary">
+      <div class="calendar-selected-day-head">
         <div>
-          <span>${formatWeekdayShort(parseIsoDate(selectedDate))}</span>
+          <span>${formatDaySummaryKicker(selectedDate)}</span>
           <h3>Eventos de ${formatDayMonth(selectedDate)}</h3>
+          <small>${dayTasks.length ? `${dayTasks.length} compromisso(s) neste dia` : "Agenda livre"}</small>
         </div>
         <strong>${dayTasks.length}</strong>
       </div>
@@ -2459,11 +2456,11 @@ function handleTab(group, value) {
   renderRoute();
 }
 
-function scrollCalendarMobileDaySummary(role) {
+function scrollCalendarSelectedDaySummary(role) {
   const view = role === "admin" ? state.ui.adminCalendarView : state.ui.clientCalendarView;
-  if (view !== "month" || !window.matchMedia("(max-width: 760px)").matches) return;
+  if (!["month", "week", "day"].includes(view)) return;
   window.requestAnimationFrame(() => {
-    document.querySelector(".calendar-mobile-day-summary")?.scrollIntoView({
+    document.querySelector(".calendar-selected-day-summary")?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
@@ -2480,7 +2477,7 @@ function handleCalendarDay(role, date) {
     state.ui.clientVisibleMonth = getMonthStartIso(parseIsoDate(date));
   }
   renderRoute();
-  scrollCalendarMobileDaySummary(role);
+  scrollCalendarSelectedDaySummary(role);
 }
 
 function handleAction(action, value) {
@@ -3544,6 +3541,11 @@ function formatFullDate(isoDate) {
 
 function formatDayMonth(isoDate) {
   return new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "long" }).format(parseIsoDate(isoDate));
+}
+
+function formatDaySummaryKicker(isoDate) {
+  const date = parseIsoDate(isoDate);
+  return new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "long" }).format(date).toUpperCase();
 }
 
 function formatWeekdayShort(date) {
