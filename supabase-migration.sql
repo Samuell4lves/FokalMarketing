@@ -15,7 +15,7 @@ create table if not exists public.eventos (
   titulo text not null,
   descricao text not null default '',
   data date not null,
-  hora time not null,
+  hora time,
   tipo text not null default 'tarefa',
   status text not null default 'agendada',
   repeticao_tipo text not null default 'none',
@@ -120,6 +120,9 @@ alter table public.eventos
 
 alter table public.eventos
   add column if not exists tipo_excecao text;
+
+alter table public.eventos
+  alter column hora drop not null;
 
 alter table public.conteudos
   add column if not exists data_criacao date not null default current_date;

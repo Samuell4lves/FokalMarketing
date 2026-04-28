@@ -888,8 +888,8 @@ async function fetchSupabaseCampaigns() {
 
 async function createSupabaseTask(response, body, sourceRole) {
   const eventItem = normalizeCalendarBody(body, sourceRole);
-  if (!eventItem.title || !eventItem.date || !eventItem.time || !eventItem.clientIds.length) {
-    return sendJson(response, 400, { error: "Titulo, data, horario e pelo menos um cliente sao obrigatorios." });
+  if (!eventItem.title || !eventItem.date || !eventItem.clientIds.length) {
+    return sendJson(response, 400, { error: "Titulo, data e pelo menos um cliente sao obrigatorios." });
   }
 
   if (!hasSupabaseEnv()) {
@@ -925,8 +925,8 @@ async function updateSupabaseTask(response, rawId, body, sourceRole) {
   const occurrenceMeta = parseOccurrenceId(rawId);
   const eventId = occurrenceMeta?.overrideId || occurrenceMeta?.seriesId || Number(rawId);
   const eventItem = normalizeCalendarBody({ ...body, id: eventId }, sourceRole);
-  if (!eventItem.title || !eventItem.date || !eventItem.time || !eventItem.clientIds.length) {
-    return sendJson(response, 400, { error: "Titulo, data, horario e pelo menos um cliente sao obrigatorios." });
+  if (!eventItem.title || !eventItem.date || !eventItem.clientIds.length) {
+    return sendJson(response, 400, { error: "Titulo, data e pelo menos um cliente sao obrigatorios." });
   }
 
   if (!hasSupabaseEnv()) {
@@ -1186,7 +1186,7 @@ function buildEventTablePayload(eventItem) {
     titulo: eventItem.title,
     descricao: eventItem.description,
     data: eventItem.date,
-    hora: eventItem.time,
+    hora: eventItem.time || null,
     tipo: eventItem.type,
     status: eventItem.status,
     repeticao_tipo: eventItem.recurrence?.type || "none",
@@ -1228,7 +1228,7 @@ function findEventFallback(events = [], rawId) {
 
 function upsertLocalEvent(events = [], eventItem) {
   const next = events.filter((item) => Number(item.id) !== Number(eventItem.id));
-  return [...next, normalizeEventRecord(eventItem)].sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`));
+  return [...next, normalizeEventRecord(eventItem)].sort((a, b) => `${a.date}T${a.time || "00:00"}`.localeCompare(`${b.date}T${b.time || "00:00"}`));
 }
 
 function deleteLocalEvent(store, rawId, scope) {

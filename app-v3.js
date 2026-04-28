@@ -152,6 +152,13 @@ document.body.addEventListener("click", (event) => {
   }
 });
 
+document.body.addEventListener("keydown", (event) => {
+  const day = event.target.closest("[data-calendar-role][data-date]");
+  if (!day || !["Enter", " "].includes(event.key)) return;
+  event.preventDefault();
+  handleCalendarDay(day.dataset.calendarRole, day.dataset.date);
+});
+
 document.body.addEventListener("input", (event) => {
   if (event.target.matches("[data-client-search]")) {
     state.ui.clientSearch = event.target.value;
@@ -166,6 +173,9 @@ document.body.addEventListener("change", (event) => {
   }
   if (event.target.matches("[data-calendar-filter]")) {
     handleCalendarFilter(event.target.dataset.calendarFilter, event.target.value);
+  }
+  if (event.target.matches("[data-calendar-jump]")) {
+    handleCalendarJump(event.target.dataset.calendarJump, event.target.value);
   }
   if (event.target.matches("[data-report-filter]")) {
     handleReportFilter(event.target.dataset.reportFilter, event.target.value);
@@ -1048,11 +1058,12 @@ function renderAdminCalendar() {
   const clients = getClientUsers();
   const filteredTasks = getTasksForCalendar("admin");
   const dayTasks = getTasksForDate(filteredTasks, selectedDate);
+  const insights = buildCalendarInsights(filteredTasks, visibleMonth, selectedDate);
 
   return `
     <div class="page-head calendar-page-title">
       <h1>Calendário</h1>
-      <p>Gerencie seus eventos e compromissos</p>
+      <p>Vis\u00e3o clara da agenda, prioridades do dia e compromissos por cliente.</p>
     </div>
     <section class="calendar-shell">
       <div class="calendar-topbar">
@@ -1063,6 +1074,10 @@ function renderAdminCalendar() {
           <button class="calendar-today" data-action="calendar-today" data-value="admin">Hoje</button>
         </div>
         <div class="calendar-toolbar">
+          <label class="calendar-date-jump">
+            ${icon("calendar")}
+            <input type="date" value="${selectedDate}" data-calendar-jump="admin" aria-label="Ir para uma data" />
+          </label>
           <label class="filter-box filter-select calendar-filter">
             <select data-calendar-filter="admin-client">
               <option value="all">Todos os clientes</option>
@@ -1073,15 +1088,16 @@ function renderAdminCalendar() {
           <div class="calendar-view-toggle" role="group" aria-label="Visualização do calendário">
             ${renderCalendarViewButtons("admin", activeView)}
           </div>
+          <button class="btn btn-primary btn-small calendar-new-event-top" data-action="new-calendar-event" data-value="admin">${icon("plus")}Novo evento</button>
         </div>
       </div>
+      ${renderCalendarInsights(insights)}
       <div class="calendar-board ${activeView === "day" ? "is-day-view" : ""}">
         ${renderCalendarMainView("admin", activeView, visibleMonth, filteredTasks, selectedDate)}
         ${activeView === "day" ? renderCalendarSidePanel("admin", selectedDate, dayTasks, true) : ""}
       </div>
       <div class="calendar-footer">
         ${renderEventCategoryLegend()}
-        <button class="btn btn-primary btn-small" data-action="new-calendar-event" data-value="admin">${icon("plus")}Novo evento</button>
       </div>
     </section>
   `;
@@ -1093,11 +1109,12 @@ function renderClientCalendar() {
   const activeView = state.ui.clientCalendarView || "month";
   const visibleTasks = getTasksForCalendar("cliente");
   const dayTasks = getTasksForDate(visibleTasks, selectedDate);
+  const insights = buildCalendarInsights(visibleTasks, visibleMonth, selectedDate);
 
   return `
     <div class="page-head calendar-page-title">
       <h1>Calendário</h1>
-      <p>Gerencie seus eventos e compromissos</p>
+      <p>Acompanhe seus pr\u00f3ximos compromissos e entregas em uma agenda simples.</p>
     </div>
     <section class="calendar-shell">
       <div class="calendar-topbar">
@@ -1108,11 +1125,16 @@ function renderClientCalendar() {
           <button class="calendar-today" data-action="calendar-today" data-value="cliente">Hoje</button>
         </div>
         <div class="calendar-toolbar">
+          <label class="calendar-date-jump">
+            ${icon("calendar")}
+            <input type="date" value="${selectedDate}" data-calendar-jump="cliente" aria-label="Ir para uma data" />
+          </label>
           <div class="calendar-view-toggle" role="group" aria-label="Visualização do calendário">
             ${renderCalendarViewButtons("cliente", activeView)}
           </div>
         </div>
       </div>
+      ${renderCalendarInsights(insights)}
       <div class="calendar-board ${activeView === "day" ? "is-day-view" : ""}">
         ${renderCalendarMainView("cliente", activeView, visibleMonth, visibleTasks, selectedDate)}
         ${activeView === "day" ? renderCalendarSidePanel("cliente", selectedDate, dayTasks, false) : ""}
@@ -1281,12 +1303,31 @@ function renderCalendarViewButtons(mode, activeView) {
     ["month", "Mês"],
     ["week", "Semana"],
     ["day", "Dia"],
-  ].map(([view, label]) => `<button class="${activeView === view ? "active" : ""}" data-action="calendar-view" data-value="${mode}|${view}">${label}</button>`).join("");
+  ].map(([view, label]) => `<button class="${activeView === view ? "active" : ""}" data-action="calendar-view" data-value="${mode}|${view}" aria-pressed="${activeView === view}">${label}</button>`).join("");
+}
+
+function renderCalendarInsights(insights) {
+  return `
+    <div class="calendar-insights" aria-label="Resumo do calend\u00e1rio">
+      ${[
+        { label: "Hoje", value: insights.todayCount, note: insights.nextToday || "Sem eventos hoje" },
+        { label: "Selecionado", value: insights.selectedCount, note: insights.selectedNote },
+        { label: "No m\u00eas", value: insights.monthCount, note: insights.busiestDay },
+        { label: "Pr\u00f3ximo", value: insights.nextEventTime, note: insights.nextEventTitle },
+      ].map((item) => `
+        <article class="calendar-insight">
+          <span>${item.label}</span>
+          <strong>${escapeHtml(String(item.value))}</strong>
+          <small>${escapeHtml(item.note)}</small>
+        </article>
+      `).join("")}
+    </div>
+  `;
 }
 
 function renderCalendarMainView(mode, activeView, visibleMonth, tasks, selectedDate) {
   if (activeView === "week") return renderCalendarWeekView(mode, tasks, selectedDate);
-  if (activeView === "day") return renderCalendarDayView(tasks, selectedDate);
+  if (activeView === "day") return renderCalendarDayView(mode, tasks, selectedDate);
   return `
     ${renderCalendarMonthGrid(mode, visibleMonth, tasks, selectedDate)}
     ${renderCalendarMobileDaySummary(mode, selectedDate, getTasksForDate(tasks, selectedDate), mode === "admin")}
@@ -1301,16 +1342,17 @@ function renderCalendarMonthGrid(mode, visibleMonth, tasks, selectedDate) {
       ${days.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}
       ${cells
         .map((cell) => {
-          if (!cell.inMonth) return `<div class="calendar-month-cell is-muted" aria-hidden="true"></div>`;
           const isoDate = toIsoDate(cell.date);
           const dayTasks = getTasksForDate(tasks, isoDate);
           const classes = [
             "calendar-month-cell",
+            !cell.inMonth ? "is-muted" : "",
             isSameDateIso(isoDate, selectedDate) ? "is-selected" : "",
             isoDate === getTodayIso() ? "is-today" : "",
           ].filter(Boolean).join(" ");
+          const eventLabel = dayTasks.length === 1 ? "1 evento" : `${dayTasks.length} eventos`;
           return `
-            <div class="${classes}" data-calendar-role="${mode}" data-date="${isoDate}" role="button" tabindex="0">
+            <div class="${classes}" data-calendar-role="${mode}" data-date="${isoDate}" role="button" tabindex="0" aria-label="${formatFullDate(isoDate)}: ${eventLabel}">
               <span class="calendar-day-number">${cell.date.getDate()}</span>
               ${renderCalendarCellEvents(dayTasks, mode)}
             </div>
@@ -1324,6 +1366,7 @@ function renderCalendarMonthGrid(mode, visibleMonth, tasks, selectedDate) {
 function renderCalendarWeekView(mode, tasks, selectedDate) {
   const weekDays = getWeekDates(selectedDate);
   return `
+    ${renderCalendarAllDayRow(mode, tasks, weekDays)}
     <div class="calendar-time-grid is-week">
       <div class="calendar-time-corner"></div>
       ${weekDays.map((date) => `
@@ -1363,16 +1406,17 @@ function renderCalendarWeekList(mode, tasks, weekDays, selectedDate) {
   `;
 }
 
-function renderCalendarDayView(tasks, selectedDate) {
+function renderCalendarDayView(mode, tasks, selectedDate) {
   const selected = parseIsoDate(selectedDate);
   return `
+    ${renderCalendarAllDayRow(mode, tasks, [selected])}
     <div class="calendar-time-grid is-day">
       <div class="calendar-time-corner"></div>
       <div class="calendar-time-day is-selected">
         <span>${formatWeekdayShort(selected)}</span>
         <strong>${selected.getDate()}</strong>
       </div>
-      ${renderCalendarTimeRows(tasks, [selected], "day")}
+      ${renderCalendarTimeRows(tasks, [selected], mode)}
     </div>
   `;
 }
@@ -1382,7 +1426,7 @@ function renderCalendarTimeRows(tasks, dates, mode) {
     <div class="calendar-hour-label">${String(hour).padStart(2, "0")}:00</div>
     ${dates.map((date) => {
       const isoDate = toIsoDate(date);
-      const hourTasks = getTasksForDate(tasks, isoDate).filter((task) => getTaskHour(task) === hour);
+      const hourTasks = getTimedTasksForDate(tasks, isoDate).filter((task) => getTaskHour(task) === hour);
       return `
         <div class="calendar-hour-cell" ${mode !== "day" ? `data-calendar-role="${mode}" data-date="${isoDate}"` : ""}>
           ${hourTasks.map((event) => renderCalendarInlineEvent(event, mode === "admin")).join("")}
@@ -1390,6 +1434,25 @@ function renderCalendarTimeRows(tasks, dates, mode) {
       `;
     }).join("")}
   `).join("");
+}
+
+function renderCalendarAllDayRow(mode, tasks, dates) {
+  const hasAnyAllDay = dates.some((date) => getAllDayTasksForDate(tasks, toIsoDate(date)).length);
+  if (!hasAnyAllDay) return "";
+  return `
+    <div class="calendar-all-day-row ${dates.length === 1 ? "is-day" : "is-week"}">
+      <div class="calendar-all-day-label">Dia todo</div>
+      ${dates.map((date) => {
+        const isoDate = toIsoDate(date);
+        const dayTasks = getAllDayTasksForDate(tasks, isoDate);
+        return `
+          <div class="calendar-all-day-cell" ${mode !== "day" ? `data-calendar-role="${mode}" data-date="${isoDate}"` : ""}>
+            ${dayTasks.length ? dayTasks.map((event) => renderCalendarInlineEvent(event, mode === "admin")).join("") : `<span class="calendar-all-day-empty">Livre</span>`}
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
 }
 
 function renderCalendarCellEvents(dayTasks, mode) {
@@ -1405,9 +1468,10 @@ function renderCalendarCellEvents(dayTasks, mode) {
 }
 
 function renderCalendarInlineEvent(event, canEdit = false) {
+  const eventTime = event.time || "Dia todo";
   return `
-    <article class="calendar-inline-event ${taskToneClass(event.type)}">
-      <span>${escapeHtml(event.time || "")}</span>
+    <article class="calendar-inline-event ${taskToneClass(event.type)} ${event.time ? "" : "is-all-day"}" title="${escapeHtml(`${eventTime} ${event.title || "Evento"}`.trim())}">
+      <span>${escapeHtml(eventTime)}</span>
       <strong>${escapeHtml(event.title || "Evento")}</strong>
       ${event.clientName ? `<small>${escapeHtml(event.clientName)}</small>` : ""}
       ${canEdit && event.id ? `<div class="event-actions"><button data-action="edit-admin-event" data-value="${event.id}" aria-label="Editar">${icon("edit")}</button><button data-action="delete-admin-event" data-value="${event.id}" aria-label="Excluir">${icon("trash")}</button></div>` : ""}
@@ -1418,10 +1482,14 @@ function renderCalendarInlineEvent(event, canEdit = false) {
 function renderCalendarSidePanel(mode, selectedDate, dayTasks, canEdit = false) {
   return `
     <aside class="calendar-day-panel">
-      <h2>Eventos de ${formatDayMonth(selectedDate)}</h2>
+      <div class="calendar-day-panel-head">
+        <span>${getRelativeDayLabel(selectedDate)}</span>
+        <h2>Eventos de ${formatDayMonth(selectedDate)}</h2>
+        <small>${dayTasks.length ? `${dayTasks.length} compromisso(s)` : "Agenda livre"}</small>
+      </div>
       ${dayTasks.length
         ? `<div class="event-stack">${dayTasks.map((event) => renderCalendarDetailEvent(event, canEdit)).join("")}</div>`
-        : `<div class="empty-notice">Nenhum evento agendado</div>`}
+        : `<div class="empty-notice calendar-empty-state">${icon("calendar")}Nenhum evento agendado</div>`}
       ${mode === "admin" ? `<button class="btn btn-primary btn-small" data-action="new-calendar-event" data-value="admin">${icon("plus")}Novo evento</button>` : ""}
     </aside>
   `;
@@ -1439,7 +1507,7 @@ function renderCalendarMobileDaySummary(mode, selectedDate, dayTasks, canEdit = 
       </div>
       ${dayTasks.length
         ? `<div class="event-stack">${dayTasks.map((event) => renderCalendarDetailEvent(event, canEdit)).join("")}</div>`
-        : `<div class="empty-notice">Nenhum evento agendado</div>`}
+        : `<div class="empty-notice calendar-empty-state">${icon("calendar")}Nenhum evento agendado</div>`}
       ${mode === "admin" ? `<button class="btn btn-primary btn-small" data-action="new-calendar-event" data-value="admin">${icon("plus")}Novo evento</button>` : ""}
     </section>
   `;
@@ -1455,7 +1523,7 @@ function renderCalendarDetailEvent(event, canEdit = false) {
         </div>
         ${canEdit && event.id ? `<div class="event-actions"><button data-action="edit-admin-event" data-value="${event.id}" aria-label="Editar">${icon("edit")}</button><button data-action="delete-admin-event" data-value="${event.id}" aria-label="Excluir">${icon("trash")}</button></div>` : ""}
       </div>
-      <div class="calendar-event-meta">${icon("clock")}${escapeHtml(event.time || "")}</div>
+      <div class="calendar-event-meta">${icon("clock")}${escapeHtml(event.time || "Dia todo")}</div>
       ${event.clientName ? `<div class="calendar-event-meta">${icon("user")}${escapeHtml(event.clientName)}</div>` : ""}
       ${event.isRecurring ? `<div class="calendar-event-meta">${icon("calendar")}${escapeHtml(event.recurrenceLabel || "Recorrente")}</div>` : ""}
       ${event.description ? `<div class="calendar-event-meta">${icon("message")}${escapeHtml(event.description)}</div>` : ""}
@@ -1937,9 +2005,9 @@ function renderModal() {
           </div>
           <form id="admin-event-form" class="modal-form">
             <div class="field"><label>Titulo</label><input name="title" placeholder="Reuniao de alinhamento" required /></div>
-            <div class="field"><label>Descricao</label><textarea name="description" rows="4" placeholder="Detalhes da tarefa"></textarea></div>
+            <div class="field"><label>Descrição</label><textarea name="description" rows="4" placeholder="Detalhes da tarefa"></textarea></div>
             <div class="field"><label>Data</label><input name="date" type="date" value="${state.ui.adminSelectedDate}" required /></div>
-            <div class="field"><label>Horario</label><input name="time" type="time" required /></div>
+            <div class="field"><label>Horário</label><input name="time" type="time" /></div>
             ${renderClientSelectionField(clients)}
             ${renderEventCategorySelect()}
             <div class="field"><label>Status</label><select name="status"><option value="agendada">Agendada</option><option value="pendente">Pendente</option><option value="concluida">Concluida</option><option value="cancelada">Cancelada</option></select></div>
@@ -1986,7 +2054,7 @@ function renderModal() {
             <div class="field"><label>Título</label><input name="title" value="${escapeHtml(event.title)}" required /></div>
             <div class="field"><label>Descrição</label><textarea name="description" rows="4">${escapeHtml(event.description || "")}</textarea></div>
             <div class="field"><label>Data</label><input name="date" type="date" value="${event.date}" required /></div>
-            <div class="field"><label>Horário</label><input name="time" type="time" value="${event.time}" required /></div>
+            <div class="field"><label>Horário</label><input name="time" type="time" value="${escapeHtml(event.time || "")}" /></div>
             ${renderClientSelectionField(clients, (event.clientIds || []).map(Number))}
             ${renderEventCategorySelect(event.type)}
             <div class="field"><label>Status</label><select name="status">${[
@@ -3317,8 +3385,65 @@ function getTasksForDate(tasks, date) {
     .sort(compareTasks);
 }
 
+function getTimedTasksForDate(tasks, date) {
+  return getTasksForDate(tasks, date).filter((task) => Boolean(task.time));
+}
+
+function getAllDayTasksForDate(tasks, date) {
+  return getTasksForDate(tasks, date).filter((task) => !task.time);
+}
+
+function getTasksForMonth(tasks, visibleMonth) {
+  const year = visibleMonth.getFullYear();
+  const month = visibleMonth.getMonth();
+  return tasks
+    .filter((task) => {
+      const date = parseIsoDate(task.date);
+      return date.getFullYear() === year && date.getMonth() === month;
+    })
+    .sort(compareTasks);
+}
+
+function buildCalendarInsights(tasks, visibleMonth, selectedDate) {
+  const today = getTodayIso();
+  const selectedTasks = getTasksForDate(tasks, selectedDate);
+  const todayTasks = getTasksForDate(tasks, today);
+  const monthTasks = getTasksForMonth(tasks, visibleMonth);
+  const upcoming = tasks
+    .filter((task) => `${task.date}T${task.time || "00:00"}` >= `${today}T00:00`)
+    .sort(compareTasks)[0];
+  const busiest = Object.entries(monthTasks.reduce((acc, task) => {
+    acc[task.date] = (acc[task.date] || 0) + 1;
+    return acc;
+  }, {})).sort((a, b) => b[1] - a[1])[0];
+
+  return {
+    todayCount: todayTasks.length,
+    selectedCount: selectedTasks.length,
+    monthCount: monthTasks.length,
+    selectedNote: selectedTasks[0]?.title || "Nenhum evento no dia",
+    nextToday: todayTasks[0] ? `${todayTasks[0].time || "--:--"} ${todayTasks[0].title || "Evento"}` : "",
+    busiestDay: busiest ? `${formatDayMonth(busiest[0])}: ${busiest[1]} evento(s)` : "Sem eventos neste m\u00eas",
+    nextEventTime: upcoming?.time || "--",
+    nextEventTitle: upcoming ? `${formatDayMonth(upcoming.date)} - ${upcoming.title || "Evento"}` : "Nada futuro agendado",
+  };
+}
+
 function compareTasks(a, b) {
-  return `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`);
+  return `${a.date}T${a.time || "00:00"}`.localeCompare(`${b.date}T${b.time || "00:00"}`);
+}
+
+function handleCalendarJump(role, date) {
+  if (!date) return;
+  if (role === "admin") {
+    state.ui.adminSelectedDate = date;
+    state.ui.adminVisibleMonth = getMonthStartIso(parseIsoDate(date));
+  }
+  if (role === "cliente") {
+    state.ui.clientSelectedDate = date;
+    state.ui.clientVisibleMonth = getMonthStartIso(parseIsoDate(date));
+  }
+  renderRoute();
 }
 
 function handleCalendarFilter(filter, value) {
@@ -3444,7 +3569,10 @@ function getWeekDates(isoDate) {
 
 function getCalendarRangeTitle(view, selectedDate, visibleMonth) {
   if (view === "day") return formatFullDate(selectedDate);
-  if (view === "week") return `Semana de ${formatDayMonth(selectedDate)}`;
+  if (view === "week") {
+    const week = getWeekDates(selectedDate);
+    return `${formatDayMonth(toIsoDate(week[0]))} - ${formatDayMonth(toIsoDate(week[6]))}`;
+  }
   return formatMonthYear(visibleMonth);
 }
 
